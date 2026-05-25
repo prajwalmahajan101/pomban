@@ -1,6 +1,19 @@
 # Keybindings — full reference
 
-Press `?` in-app for a quick overlay. This page is the exhaustive list.
+Press `?` in-app for a quick overlay. The overlay is generated from the **live**
+bindings of the active screen and focused panel, so it always matches reality
+(and changes with the focused panel). This page is the exhaustive list.
+
+## Panels & focus (btop / lazygit style)
+
+Each screen is split into **panels**. The focused panel is highlighted with an
+accent border, and its keymap is the one shown in the footer — so the available
+keys change depending on which panel is active.
+
+| Key | Action |
+|---|---|
+| `Tab` / `Shift+Tab` | Cycle focus between panels (Dashboard panes; Kanban columns) |
+| `1`–`6` | Jump directly to a section (Dashboard / Kanban / Stats / History / Projects / Sprints) |
 
 ## Global (works everywhere)
 
@@ -9,11 +22,19 @@ Press `?` in-app for a quick overlay. This page is the exhaustive list.
 | `q` | Quit (persists pending focus session if one is open) |
 | `?` | Toggle help overlay |
 | `t` | Cycle theme; persisted to `config.toml` |
+| `Shift+T` / `T` | Toggle **auto-advance** (skip end-of-phase modal); persisted to `config.toml` |
+| `m` | Toggle **music** play/pause (when `[music].enabled`) |
+| `Shift+M` / `M` | Music **next track** |
 | `p` | Open preset picker (modal) |
+| `Shift+P` / `P` | Open **project** filter picker (All / Inbox / each project) |
+| `Shift+F` / `F` | Open **sprint** filter picker (scoped to active project) |
+| `Shift+L` / `L` | Start a **lunch break** (long pause — interrupts current phase) |
 | `1` | Switch to **Dashboard** |
 | `2` | Switch to **Kanban** |
 | `3` | Switch to **Stats** |
 | `4` | Switch to **History** |
+| `5` | Switch to **Projects** management screen |
+| `6` | Switch to **Sprints** management screen |
 
 ## Dashboard
 
@@ -34,14 +55,32 @@ Press `?` in-app for a quick overlay. This page is the exhaustive list.
 | `n` | Focus the "new task" input |
 | `d` / `x` | Delete selected task |
 | `c` | Mark selected task as **done** |
+| `e` | Edit selected task (title / tags / estimate / project) |
+| `` ` `` (backtick) | Cycle the highlighted active-task chip (multi-task focus) |
+
+### Music panel (only when `[music].enabled` and the panel is **focused**)
+
+Tab to the music panel first; these keys are scoped to it (so `n`/`Space` mean
+music here, not new-task / timer):
+
+| Key | Action |
+|---|---|
+| `Space` | Play / pause |
+| `n` / `p` | Next / previous track |
+| `+` / `-` | Volume up / down (dB step) |
+| `Shift+V` / `V` | Toggle the live visualizer |
 
 ## Kanban
+
+The three columns are panels: the active column has an accent border, and its
+footer keymap reflects what's valid there (e.g. **Done** offers *Reopen* but not
+*Move →* or *Focus*).
 
 ### Navigation
 
 | Key | Action |
 |---|---|
-| `h` / `l` | Move cursor left/right between columns |
+| `h` / `l` | Move between columns (also `Tab` / `Shift+Tab`) |
 | `j` / `k` | Move cursor up/down within a column |
 
 ### Moving cards across columns
@@ -65,9 +104,19 @@ Multiple aliases — use whichever your terminal doesn't intercept.
 | Key | Action |
 |---|---|
 | `n` | Focus the new-card input; adds to the **currently focused column** |
-| `Enter` / `s` | Start a focus session on focused card |
-| `c` | Mark focused card as **done** (moves to Done column) |
+| `Enter` / `s` | Start a focus session on focused card (To Do / Doing only) |
+| `c` | Mark focused card as **done** (To Do / Doing → Done) |
+| `o` | **Reopen** — move a Done card back to To Do (Done column only) |
+| `e` | Edit focused card (title / tags / estimate / project) |
 | `d` / `x` | Delete focused card |
+
+Per-column keymap (what the footer shows):
+
+| Column | Available |
+|---|---|
+| **To Do** | Focus · Move → · New · Edit · Delete |
+| **Doing** | Focus · Move ← · Move → · New · Edit · Delete |
+| **Done** | Move ← · **Reopen** · New · Edit · Delete |
 
 ## Session-end modal (after focus completes with a task)
 
@@ -75,6 +124,7 @@ Multiple aliases — use whichever your terminal doesn't intercept.
 |---|---|
 | `c` | **Completed** — mark task done, end session, advance to break |
 | `k` | **Keep** — leave task in Doing, end session, advance to break |
+| `l` | **Lunch** — start a long pause (only suggested inside the configured `[breaks]` window) |
 | `e` | (no-op label cue) — shows the +5/+10/+15 hint |
 | `5` | Extend current focus by **+5 minutes** |
 | `0` | Extend current focus by **+10 minutes** |
@@ -96,11 +146,57 @@ Multiple aliases — use whichever your terminal doesn't intercept.
 | `y` | Resume the previous focus session at the saved time-remaining |
 | `n` / `Esc` | Discard — close the session as `completed=0` |
 
-## Help overlay
+## Projects screen (`5`)
 
 | Key | Action |
 |---|---|
-| any | Close the overlay |
+| `n` | Add a new project (focuses the input) |
+| `r` | Rename the focused project |
+| `c` | Cycle through colors for the focused project |
+| `a` | Archive / unarchive the focused project |
+| `d` / `x` | Delete the focused project (tasks move to Inbox) |
+| `Enter` | Apply this project as a filter and switch to Kanban |
+
+## Sprints screen (`6`)
+
+| Key | Action |
+|---|---|
+| `n` | Add a new sprint (name, optional target as last word) |
+| `a` | Activate the focused sprint (deactivates any other active sprint in same project) |
+| `c` | Mark sprint as **completed** |
+| `x` | Mark sprint as **cancelled** |
+| `d` | Delete the sprint (tasks released back to project backlog) |
+| `e` | Edit pomodoro target |
+| `g` | Edit goal |
+| `Enter` | Apply this sprint as a filter and switch to Kanban |
+
+## Stats screen (`3`) — view cycle
+
+| Key | Action |
+|---|---|
+| `d` | Daily view (14 buckets) |
+| `w` | Weekly view (12 buckets) |
+| `m` | Monthly view (12 buckets) |
+
+## Help overlay
+
+The overlay is built dynamically from the active screen + focused panel's live
+bindings, so it never goes stale.
+
+| Key | Action |
+|---|---|
+| `Esc` / `?` / `q` / any | Close the overlay |
+
+## Inline task syntax (used in Dashboard + Kanban inputs)
+
+`Wire OAuth flow @client-acme !v1.0-launch ~5 #backend #urgent`
+
+| Token | Meaning |
+|---|---|
+| `#tag` | Add a tag (multiple allowed) |
+| `@project` | Assign to project (auto-created if new). First `@` wins. |
+| `!sprint` | Assign to sprint (auto-created as a 14-day shell if new). First `!` wins. |
+| `~N` | Estimated pomodoros (integer). First `~N` wins. |
 
 ## Why so many aliases?
 

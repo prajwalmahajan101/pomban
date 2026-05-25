@@ -7,25 +7,117 @@ Everything a user needs, in the order you'll meet it.
 1. [Quickstart](#quickstart)
 2. [The Pomodoro cycle](#the-pomodoro-cycle)
 3. [Tasks](#tasks)
-4. [The session-end modal](#the-session-end-modal)
-5. [Pre-end "ending soon" warning](#pre-end-ending-soon-warning)
-6. [Kanban board](#kanban-board)
-7. [Stats](#stats)
-8. [History](#history)
-9. [Presets](#presets)
-10. [Themes](#themes)
-11. [Notifications](#notifications)
-12. [Hooks (shell commands on phase change)](#hooks)
-13. [Resume on restart](#resume-on-restart)
-14. [Markdown export](#markdown-export)
-15. [Data locations](#data-locations)
+4. [Projects (and the Inbox)](#projects-and-the-inbox)
+5. [Sprints](#sprints)
+6. [Lunch breaks](#lunch-breaks)
+7. [The session-end modal](#the-session-end-modal)
+8. [Pre-end "ending soon" warning](#pre-end-ending-soon-warning)
+9. [Kanban board](#kanban-board)
+10. [Stats — daily/weekly/monthly + project drill-down](#stats)
+11. [History](#history)
+12. [Presets](#presets)
+13. [Themes](#themes)
+14. [Notifications](#notifications)
+15. [Hooks (shell commands on phase change)](#hooks)
+16. [Resume on restart](#resume-on-restart)
+17. [Markdown export & sprint reports](#markdown-export)
+18. [Data locations](#data-locations)
+
+## Inline task syntax
+
+The task input on Dashboard and Kanban understands a small shorthand:
+
+```
+Wire OAuth flow @client-acme !v1.0-launch ~5 #backend #urgent
+```
+
+| Token | Meaning |
+|---|---|
+| `#tag` | Add a tag (multiple allowed) |
+| `@project` | Assign to project (auto-created if it doesn't exist). First `@` wins. |
+| `!sprint` | Assign to a sprint (auto-created as a 14-day shell if new). First `!` wins. |
+| `~N` | Estimated pomodoros. First `~N` wins. |
+
+If a project filter is active when you add a task, the new task inherits that project automatically — you don't need `@project` for every entry.
+
+## Projects (and the Inbox)
+
+Projects are 1:N containers for tasks: a task belongs to exactly one project, or to none (the **Inbox**). Tags are still a separate thing — orthogonal labels like `#urgent` or `#docs`.
+
+- **Pick a project filter**: `Shift+P` opens a modal listing All / Inbox / each project. The choice persists across restarts.
+- **Manage projects**: press `5` for the Projects screen — add (`n`), rename (`r`), cycle color (`c`), archive (`a`), delete (`d`).
+- **Project badges** appear on every task card and dashboard list. Inbox renders as a grey badge.
+- **Per-project stats**: with a project filter active, the Stats screen recolors its heatmap and adds a drill-down (total / month / week / avg per day / estimate ratio / day-of-week distribution / idle-gap warning).
+
+## Sprints
+
+Sprints are time-boxed containers for tasks **within a project**. Each sprint has a name, start/end date, optional goal and pomodoro target.
+
+- **Manage sprints**: press `6` for the Sprints screen — `n` add, `a` activate, `c` complete, `x` cancel, `d` delete, `e` edit target, `g` edit goal.
+- **Activate** (`a`): only one sprint per project can be active at a time. Picking a sprint as the filter (`Shift+F` or via the screen) restricts Kanban to its tasks.
+- **Burndown**: when a sprint filter is active, the Stats screen renders a burndown sparkline (remaining 🍅 over time vs ideal linear pace).
+- **Sprint export**: `pomodoro sprint export <id>` prints a markdown report (goal, dates, shipped vs not, retrospective if set).
+
+## Lunch breaks
+
+A lunch (or coffee walk, school pickup, …) is a real recurring interruption that deserves to be timed.
+
+- Press `Shift+L` at any time to start a long pause. It interrupts the current phase, logs an interruption with reason `lunch`, and starts a fresh `long_pause` session.
+- Long pauses do **not** consume a Pomodoro cycle and are excluded from focus totals on the Stats screen.
+- If `[breaks].lunch_window_start` and `…_end` are configured, the session-end modal (after a focus phase) adds an `[l] take lunch` button when the current time is inside the window and no lunch has been logged today.
+- Configure duration via `[breaks].lunch_minutes` (default 45).
 
 ---
+
+## Music during focus
+
+Set `[music].enabled = true` (see [configuration](configuration.md#music)) to drive an
+external player around phases — playback starts when you begin focusing and pauses when
+the phase ends. Breaks and lunches are treated the same way (`on_break_*`).
+
+- `m` toggles play/pause without leaving the timer; `Shift+M` skips to the next track.
+- The default player is `cliamp`; any binary that takes `play` / `pause` / `toggle` /
+  `next` subcommands works — set `[music].player` and the `on_*` subcommands to match.
+- If the player isn't installed the feature degrades silently — a note is written to
+  `~/.local/state/pomodoro/music.log` and the timer keeps working.
+
+### The in-app music panel
+
+With `[music].show_panel = true` (default), the Dashboard grows a now-playing strip.
+It reads `cliamp status --json` on a timer and shows the current track and play state.
+You **don't** need to launch cliamp yourself — on startup the app spawns a headless
+`cliamp --daemon` in the background (disable with `autostart = false`), and stops the
+one it started when you quit. **Tab** to the panel to focus it (it gets an accent
+border like any active panel), then:
+
+- `Space` play/pause · `n` / `p` next / previous · `+` / `-` volume · `Shift+V` visualizer.
+
+Turn on `[music].visualizer` (or press `Shift+V`) to stream `cliamp visstream` into a
+live sparkline. Status reads and the visualizer run off the UI thread, so a missing or
+slow player never stutters the timer — the panel just shows "not running". The rich panel
+features are cliamp-specific; other players still get the global `m` controls. The old
+side-by-side launcher (`python -m pomodoro --with-music`) remains as a fallback.
+
+---
+
+## Install
+
+The quickest path is the `Makefile`:
+
+```bash
+make install       # pip install -e .   (adds the `pomodoro` command)
+make run           # or: python -m pomodoro
+make install-dev   # editable install + pytest, for hacking on it
+make test          # run the suite
+make help          # list all targets
+```
+
+Requires Python ≥ 3.11. The only runtime dependency is Textual.
 
 ## Quickstart
 
 ```bash
-pomodoro
+pomodoro           # or `make run`
 ```
 
 1. Type a task title in the input box at the bottom right; press **Enter**.
@@ -178,12 +270,16 @@ Press **2** to switch to Kanban.
 └──────────────┘  └──────────────┘  └─────────────┘
 ```
 
+The **active column** is highlighted with an accent border, and the footer keymap
+changes with it: To Do/Doing offer **Focus** and **Move →**, while **Done** offers
+**Reopen** (`o`, back to To Do) instead. Cycle columns with `h`/`l` or `Tab`/`Shift+Tab`.
+
 ### Navigation
 
 | Key | Action |
 |---|---|
 | `j` / `k` | Move cursor up/down within current column |
-| `h` / `l` | Move cursor left/right across columns |
+| `h` / `l` | Move between columns (also `Tab` / `Shift+Tab`) |
 
 ### Moving cards
 
