@@ -27,6 +27,7 @@ class TimerSection:
     long_break_minutes: int = 15
     cycles_before_long_break: int = 4
     warning_seconds: int = 30
+    auto_advance: bool = False
 
 
 @dataclass
@@ -57,6 +58,32 @@ class SyncSection:
 
 
 @dataclass
+class BreaksSection:
+    lunch_minutes: int = 45
+    lunch_window_start: str = ""   # "HH:MM" — empty disables the suggestion
+    lunch_window_end: str = ""
+
+
+@dataclass
+class MusicSection:
+    enabled: bool = False
+    player: str = "cliamp"
+    on_focus_start: str = "play"
+    on_focus_end: str = "pause"
+    on_break_start: str = ""
+    on_break_end: str = "play"
+    # In-app control panel (Dashboard strip)
+    show_panel: bool = True          # render the now-playing/control panel
+    visualizer: bool = False         # stream cliamp `visstream` into a sparkline
+    visualizer_fps: int = 20
+    poll_seconds: float = 1.0        # how often the panel re-reads `status --json`
+    volume_step_db: float = 2.0      # +/- volume increment
+    # Auto-start a headless player daemon on launch so no separate instance is needed.
+    autostart: bool = True
+    daemon_args: str = "--daemon"    # args to run the player headless; "" disables
+
+
+@dataclass
 class Preset:
     name: str
     focus_minutes: int
@@ -72,6 +99,8 @@ class Config:
     ui: UISection = field(default_factory=UISection)
     hooks: HooksSection = field(default_factory=HooksSection)
     sync: SyncSection = field(default_factory=SyncSection)
+    breaks: BreaksSection = field(default_factory=BreaksSection)
+    music: MusicSection = field(default_factory=MusicSection)
     presets: list[Preset] = field(default_factory=list)
 
 
@@ -104,6 +133,10 @@ def load(path: Path | str | None = None) -> Config:
         cfg.hooks = HooksSection(**_filter_kwargs(HooksSection, raw["hooks"]))
     if isinstance(raw.get("sync"), dict):
         cfg.sync = SyncSection(**_filter_kwargs(SyncSection, raw["sync"]))
+    if isinstance(raw.get("breaks"), dict):
+        cfg.breaks = BreaksSection(**_filter_kwargs(BreaksSection, raw["breaks"]))
+    if isinstance(raw.get("music"), dict):
+        cfg.music = MusicSection(**_filter_kwargs(MusicSection, raw["music"]))
     presets = raw.get("preset", [])
     if isinstance(presets, list):
         cfg.presets = [Preset(**_filter_kwargs(Preset, p)) for p in presets
@@ -116,7 +149,8 @@ def save(cfg: Config, path: Path | str | None = None) -> None:
     p.parent.mkdir(parents=True, exist_ok=True)
     lines: list[str] = []
     for section_name, section in (("timer", cfg.timer), ("notifications", cfg.notifications),
-                                  ("ui", cfg.ui), ("hooks", cfg.hooks), ("sync", cfg.sync)):
+                                  ("ui", cfg.ui), ("hooks", cfg.hooks), ("sync", cfg.sync),
+                                  ("breaks", cfg.breaks), ("music", cfg.music)):
         lines.append(f"[{section_name}]")
         for k, v in asdict(section).items():
             lines.append(_format_kv(k, v))
