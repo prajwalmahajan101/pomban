@@ -118,3 +118,67 @@ async def test_kanban_new_card_input_adds_to_current_column():
             assert len(tasks["doing"]) == 1
             assert tasks["doing"][0].title == "Quick"
         db.close()
+
+
+@pytest.mark.asyncio
+async def test_kanban_per_column_keymaps():
+    with tempfile.TemporaryDirectory() as td:
+        db = DB(Path(td) / "k.db")
+        app = PomodoroApp(db=db, fast=True)
+        async with app.run_test() as pilot:
+            await wait_for(pilot, DashboardScreen)
+            await pilot.press("2")
+            scr = await wait_for(pilot, KanbanScreen)
+            await pilot.pause()
+            # To Do (col 0): can move right, not left; can focus; cannot reopen.
+            scr.col = 0
+            assert scr.check_action("move_card_left", ()) is False
+            assert scr.check_action("move_card_right", ()) is True
+            assert scr.check_action("start_focus", ()) is True
+            assert scr.check_action("reopen", ()) is False
+            # Done (col 2): cannot move right or focus; can reopen.
+            scr.col = 2
+            assert scr.check_action("move_card_right", ()) is False
+            assert scr.check_action("start_focus", ()) is False
+            assert scr.check_action("reopen", ()) is True
+            assert scr.check_action("move_card_left", ()) is True
+        db.close()
+
+
+@pytest.mark.asyncio
+async def test_kanban_reopen_moves_done_to_todo():
+    with tempfile.TemporaryDirectory() as td:
+        db = DB(Path(td) / "k.db")
+        t = db.add_task("Finished")
+        db.move_task(t.id, "done")
+        app = PomodoroApp(db=db, fast=True)
+        async with app.run_test() as pilot:
+            await wait_for(pilot, DashboardScreen)
+            await pilot.press("2")
+            scr = await wait_for(pilot, KanbanScreen)
+            await pilot.pause()
+            scr.col = 2  # Done
+            scr.row = 0
+            scr._paint_cursor()
+            await pilot.press("o")  # reopen
+            await pilot.pause()
+            assert db.get_task(t.id).status == "todo"
+        db.close()
+
+
+@pytest.mark.asyncio
+async def test_kanban_active_column_highlight_follows_cursor():
+    with tempfile.TemporaryDirectory() as td:
+        db = DB(Path(td) / "k.db")
+        app = PomodoroApp(db=db, fast=True)
+        async with app.run_test() as pilot:
+            await wait_for(pilot, DashboardScreen)
+            await pilot.press("2")
+            scr = await wait_for(pilot, KanbanScreen)
+            await pilot.pause()
+            assert scr.query_one("#col-todo").has_class("-active-col")
+            await pilot.press("l")  # move to Doing
+            await pilot.pause()
+            assert scr.query_one("#col-doing").has_class("-active-col")
+            assert not scr.query_one("#col-todo").has_class("-active-col")
+        db.close()
