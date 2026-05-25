@@ -69,7 +69,7 @@ def registry() -> PluginRegistry:
 
 
 def git_sync(repo_dir: Path | str) -> None:
-    """Run `git add -A && git commit -m '...'` in repo_dir. Non-blocking. Silent on failure."""
+    """Run `git add -A && git commit` in repo_dir. Non-blocking. Silent on failure."""
     import shutil
     import subprocess
     from datetime import datetime
@@ -80,9 +80,15 @@ def git_sync(repo_dir: Path | str) -> None:
     if not (repo / ".git").exists():
         return
     msg = f"pomodoro sync {datetime.now().isoformat(timespec='seconds')}"
+    # Fire-and-forget so a slow `git add` never blocks shutdown (this is called
+    # from on_unmount). The repo path and commit message are passed as positional
+    # parameters ($1/$2) — they're shell *data*, not interpolated into the script
+    # text, so there's no injection even with spaces or metacharacters in the path.
     try:
         subprocess.Popen(
-            ["sh", "-c", f"cd {repo} && git add -A && git commit -m '{msg}' >/dev/null 2>&1"],
+            ["sh", "-c", 'cd "$1" && git add -A && git commit -m "$2"', "_", str(repo), msg],
+            stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL,
+            stdin=subprocess.DEVNULL, start_new_session=True,
         )
     except Exception as e:
         _log(f"[git-sync-error] {e}")

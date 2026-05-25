@@ -98,9 +98,10 @@ def test_migration_v1_to_v2_upgrades_existing_db(tmp_path):
     db = DB(db_path)
     # interruptions table now exists
     db.conn.execute("SELECT COUNT(*) FROM interruptions").fetchone()
-    # user_version bumped
+    # user_version bumped to current SCHEMA_VERSION (currently 6)
+    from pomodoro.core.db import SCHEMA_VERSION
     v = db.conn.execute("PRAGMA user_version").fetchone()[0]
-    assert v == 2
+    assert v == SCHEMA_VERSION
     # Old row preserved
     rows = db.conn.execute("SELECT title FROM tasks").fetchall()
     assert rows[0]["title"] == "Existing"

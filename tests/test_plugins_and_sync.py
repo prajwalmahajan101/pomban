@@ -61,6 +61,27 @@ def test_git_sync_calls_commit_when_repo_present(tmp_path):
     with patch("subprocess.Popen") as popen:
         git_sync(tmp_path)
         assert popen.called
-        args = popen.call_args[0][0]
-        assert "git add -A" in args[-1]
-        assert "git commit" in args[-1]
+        argv = popen.call_args[0][0]
+        # Fire-and-forget single process (non-blocking on shutdown).
+        assert argv[0] == "sh" and argv[1] == "-c"
+        script = argv[2]
+        assert "git add -A" in script and "git commit" in script
+        # Injection-safe: repo path + message are positional params ($1/$2),
+        # NOT interpolated into the script text.
+        assert str(tmp_path) not in script
+        assert str(tmp_path) in argv[3:]  # passed as a positional arg
+        # Detached so a slow add can't hang the app on exit.
+        assert popen.call_args.kwargs.get("start_new_session") is True
+
+
+def test_git_sync_is_injection_safe(tmp_path):
+    # A repo path containing shell metacharacters must not break out of the command.
+    evil = tmp_path / "a; rm -rf ~"
+    evil.mkdir()
+    (evil / ".git").mkdir()
+    with patch("subprocess.Popen") as popen:
+        git_sync(evil)
+        argv = popen.call_args[0][0]
+        # The dangerous path appears only as data (a positional arg), never in the script.
+        assert str(evil) not in argv[2]
+        assert str(evil) in argv[3:]
