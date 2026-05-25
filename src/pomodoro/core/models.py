@@ -1,10 +1,11 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
-from typing import Literal
+from typing import Literal, Optional
 
 TaskStatus = Literal["todo", "doing", "done"]
-SessionKind = Literal["focus", "short_break", "long_break"]
+SessionKind = Literal["focus", "short_break", "long_break", "long_pause"]
+SprintStatus = Literal["planned", "active", "completed", "cancelled"]
 
 
 @dataclass
@@ -15,6 +16,9 @@ class Task:
     tags: str = ""
     estimated_pomodoros: int = 0
     position: int = 0
+    project_id: Optional[int] = None
+    sprint_id: Optional[int] = None
+    notes: str = ""
 
 
 @dataclass
@@ -27,3 +31,24 @@ class Session:
     actual_seconds: int
     completed: bool
     interruption_count: int = 0
+
+
+@dataclass
+class Project:
+    id: int
+    name: str
+    color: str = "cyan"
+    archived: bool = False
+
+
+@dataclass
+class Sprint:
+    id: int
+    project_id: Optional[int]
+    name: str
+    goal: str = ""
+    start_date: str = ""
+    end_date: str = ""
+    pomodoro_target: int = 0
+    status: SprintStatus = "planned"
+    retrospective: str = ""
