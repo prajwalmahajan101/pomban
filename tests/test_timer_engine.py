@@ -173,3 +173,65 @@ def test_sub_second_carry():
     assert e.remaining == 10
     e.tick(1.1)
     assert e.remaining == 9
+
+
+def test_restore_sets_phase_and_remaining():
+    e = make()
+    e.restore(Phase.FOCUS, remaining=120, running=True, now=0.0)
+    assert e.phase == Phase.FOCUS
+    assert e.remaining == 120
+    assert e.running
+    # Ticking decrements from the restored value, not the phase default.
+    e.tick(5.0)
+    assert e.remaining == 115
+
+
+def test_restore_paused_has_no_last_tick():
+    e = make()
+    e.restore(Phase.SHORT_BREAK, remaining=3, running=False, now=2.0)
+    assert not e.running
+    # A tick while paused is a no-op.
+    assert e.tick(10.0) == []
+    assert e.remaining == 3
+
+
+def test_restore_below_warning_does_not_refire_warning():
+    e = make()  # warning_seconds=2
+    e.restore(Phase.FOCUS, remaining=1, running=True, now=0.0)
+    events = e.tick(0.1)
+    assert Event.PHASE_ENDING_SOON not in events
+
+
+def test_enter_long_pause():
+    e = make()
+    e.start(0.0)
+    e.enter_long_pause(2700, now=1.0)
+    assert e.phase == Phase.LONG_PAUSE
+    assert e.remaining == 2700
+    assert e.running
+    # LONG_PAUSE completion does not consume a focus cycle.
+    e.restore(Phase.LONG_PAUSE, remaining=1, running=True, now=2.0)
+    events = e.tick(4.0)
+    assert Event.PHASE_COMPLETED in events
+    assert e.completed_focus_cycles == 0
+
+
+def test_long_pause_resumes_saved_phase():
+    e = make()
+    e.start(0.0)  # FOCUS
+    # Take lunch with SHORT_BREAK as the interrupted phase (real flow: no restore()).
+    e.enter_long_pause(2, now=1.0, resume_phase=Phase.SHORT_BREAK)
+    assert e.phase == Phase.LONG_PAUSE
+    e.tick(5.0)               # pause elapses → completes → awaiting_decision
+    e.confirm_advance(5.0)
+    assert e.phase == Phase.SHORT_BREAK   # resumed the break, not FOCUS
+    assert e.remaining == 4               # short_break_seconds from make()
+
+
+def test_long_pause_defaults_to_focus():
+    e = make()
+    e.start(0.0)
+    e.enter_long_pause(2, now=1.0)  # no resume_phase → FOCUS
+    e.tick(5.0)
+    e.confirm_advance(5.0)
+    assert e.phase == Phase.FOCUS

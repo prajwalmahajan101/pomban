@@ -10,6 +10,7 @@ class Phase(str, Enum):
     FOCUS = "focus"
     SHORT_BREAK = "short_break"
     LONG_BREAK = "long_break"
+    LONG_PAUSE = "long_pause"  # lunch / coffee — interleaved, doesn't consume a cycle
 
 
 class Event(str, Enum):
@@ -38,6 +39,9 @@ class TimerEngine:
     _last_tick: float | None = None
     _carry: float = 0.0
     _warning_fired: bool = False
+    # Phase to return to after a LONG_PAUSE (lunch) completes. The pause interrupts
+    # whatever phase was running; confirm_advance resumes this instead of FOCUS.
+    _resume_phase: Phase = Phase.FOCUS
 
     def start(self, now: float) -> list[Event]:
         if self.phase == Phase.IDLE:
@@ -73,6 +77,33 @@ class TimerEngine:
         self._last_tick = None
         self._carry = 0.0
         self._warning_fired = False
+        self._resume_phase = Phase.FOCUS
+
+    def restore(self, phase: Phase, remaining: int, running: bool, now: float) -> None:
+        """Re-enter a known phase mid-flight (e.g. resuming a persisted session).
+
+        Bypasses the normal phase-entry durations: the caller supplies the exact
+        remaining seconds. This is the supported way to set engine state directly
+        instead of poking private attributes.
+        """
+        self.reset()
+        self.phase = phase
+        self.remaining = max(0, int(remaining))
+        self.running = running
+        self._last_tick = now if running else None
+        # Don't re-fire the "ending soon" warning if we resume already past it.
+        self._warning_fired = self.remaining <= self.settings.warning_seconds
+
+    def enter_long_pause(self, seconds: int, now: float,
+                         resume_phase: Phase = Phase.FOCUS) -> None:
+        """Drive the engine into an interleaved LONG_PAUSE (lunch/coffee).
+
+        LONG_PAUSE doesn't consume a focus cycle. ``resume_phase`` is the phase the
+        engine returns to when the pause completes (defaults to FOCUS) — set so a
+        lunch taken mid-break resumes the break rather than jumping to focus.
+        """
+        self.restore(Phase.LONG_PAUSE, seconds, running=True, now=now)
+        self._resume_phase = resume_phase if resume_phase != Phase.IDLE else Phase.FOCUS
 
     def skip(self, now: float) -> list[Event]:
         if self.phase == Phase.IDLE:
@@ -103,6 +134,10 @@ class TimerEngine:
             return []
         self.awaiting_decision = False
         completed_phase = self.phase
+        if completed_phase == Phase.LONG_PAUSE:
+            # Resume the phase that was interrupted by the pause (set via
+            # enter_long_pause); defaults to FOCUS.
+            return self._enter(self._resume_phase, now)
         if completed_phase == Phase.FOCUS:
             if self.completed_focus_cycles % self.settings.cycles_before_long_break == 0:
                 return self._enter(Phase.LONG_BREAK, now)
@@ -131,6 +166,7 @@ class TimerEngine:
         self.awaiting_decision = True
         if self.phase == Phase.FOCUS:
             self.completed_focus_cycles += 1
+        # LONG_PAUSE does not count toward cycles; it's an interleaved pause.
         return [Event.PHASE_COMPLETED]
 
     def _accumulate(self, now: float) -> None:
@@ -151,6 +187,9 @@ class TimerEngine:
             return self.settings.short_break_seconds
         if phase == Phase.LONG_BREAK:
             return self.settings.long_break_seconds
+        if phase == Phase.LONG_PAUSE:
+            # Default if entered via state machine; app layer typically sets remaining directly.
+            return 45 * 60
         return 0
 
     def _enter(self, phase: Phase, now: float) -> list[Event]:
