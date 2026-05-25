@@ -5,3 +5,8 @@ __pycache__/
 build/
 dist/
 .pytest_cache/
+
+# Stray SQLite databases from local runs / tests
+*.sqlite3
+*.db
+.test_db.sqlite3
