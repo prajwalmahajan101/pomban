@@ -1,33 +1,56 @@
 from __future__ import annotations
 
+from rich.markup import escape
 from textual.app import ComposeResult
 from textual.binding import Binding
 from textual.containers import Horizontal, Vertical
-from textual.screen import Screen
 from textual.widgets import Footer, Header, Input, ListItem, ListView, Static
 
 from pomodoro.core.models import Task
+from pomodoro.screens.base import AppScreen
+from pomodoro.widgets.music_panel import MusicPanel
 from pomodoro.widgets.stats_strip import StatsStrip
 from pomodoro.widgets.timer_display import TimerDisplay
+from pomodoro.widgets.card import render_project_badge
 
 
 class TaskItem(ListItem):
-    def __init__(self, task: Task) -> None:
+    def __init__(self, task: Task, project_name: str | None = None,
+                 project_color: str | None = None) -> None:
         mark = {"todo": "[ ]", "doing": "[~]", "done": "[x]"}[task.status]
-        label = f"{mark} {task.title}"
+        badge = render_project_badge(project_name, project_color)
+        label = f"{badge} {mark} {escape(task.title)}"
         if task.tags:
-            label += f"  [dim]#{task.tags.replace(',', ' #')}[/]"
+            tags = escape(task.tags.replace(",", " #"))
+            label += f"  [dim]#{tags}[/]"
+        if task.estimated_pomodoros:
+            label += f"  [dim]🍅×{task.estimated_pomodoros}[/]"
         super().__init__(Static(label))
         self.task_data = task
 
 
-class DashboardScreen(Screen):
+class DashboardScreen(AppScreen):
     CSS = """
     DashboardScreen { layout: vertical; }
     #stats { dock: top; }
     #main { height: 1fr; }
-    #timer-pane { width: 1fr; border: round $primary; }
-    #task-pane { width: 50; border: round $secondary; }
+    /* All panes share a dim base border so only the focused one stands out. */
+    #timer-pane { width: 1fr; border: round $primary-darken-2; }
+    #task-pane { width: 50; border: round $primary-darken-2; }
+    /* In normal flow (not docked) so it sits above the docked Footer — docking
+       it bottom made it fight the Footer for the same rows. */
+    #music-pane { border: round $primary-darken-2; height: auto; }
+    /* Active-panel highlight (btop-style): accent border + accent title bar. */
+    #timer-pane:focus, #task-pane:focus-within, #music-pane:focus {
+        border: round $accent;
+    }
+    #timer-pane:focus .pane-title,
+    #task-pane:focus-within .pane-title,
+    #music-pane:focus #np-title {
+        background: $accent;
+        color: $text;
+        text-style: bold;
+    }
     #task-list { height: 1fr; }
     #task-input { dock: bottom; }
     .pane-title { padding: 0 1; background: $panel; color: $text; }
@@ -35,16 +58,22 @@ class DashboardScreen(Screen):
 
     BINDINGS = [
         Binding("s,space", "app.toggle", "Start/Pause"),
+        # Tab/Shift+Tab cycle focus between panels (default Textual focus movement);
+        # the active-task chip cycle moves to backtick to free Tab.
+        Binding("grave_accent", "cycle_active_chip", "Cycle task", show=False),
         Binding("r", "app.reset", "Reset"),
         Binding("shift+s,S", "app.skip", "Skip"),
         Binding("enter", "app.start_on_selected", "Start", show=False),
         Binding("n", "new_task", "New task"),
         Binding("d,x", "app.delete_task", "Delete"),
         Binding("c", "app.complete_task", "Complete"),
+        Binding("e", "app.edit_task", "Edit"),
         Binding("1", "app.switch('dashboard')", "Dashboard"),
         Binding("2", "app.switch('kanban')", "Kanban"),
         Binding("3", "app.switch('stats')", "Stats", show=False),
         Binding("4", "app.switch('history')", "History", show=False),
+        Binding("5", "app.switch('projects')", "Projects", show=False),
+        Binding("6", "app.switch('sprints')", "Sprints", show=False),
         Binding("question_mark", "app.help", "Help"),
         Binding("t", "app.cycle_theme", "Theme"),
         Binding("q", "app.quit", "Quit"),
@@ -61,12 +90,25 @@ class DashboardScreen(Screen):
                 yield Static("[b]Tasks[/]", classes="pane-title")
                 yield ListView(id="task-list")
                 yield Input(placeholder="Add a task — use #tag inline", id="task-input")
+        mcfg = self.app.config.music
+        if mcfg.enabled and mcfg.show_panel:
+            yield MusicPanel(self.app.music, visualizer=mcfg.visualizer,
+                             poll_seconds=mcfg.poll_seconds, vis_fps=mcfg.visualizer_fps,
+                             volume_step=mcfg.volume_step_db)
         yield Footer()
 
     def on_mount(self) -> None:
+        # Make the timer pane focusable so it can be the active panel (it has no
+        # focusable children); task/music panes highlight via :focus-within / :focus.
+        self.query_one("#timer-pane").can_focus = True
+        self.refresh_view()
+        self.query_one("#task-list", ListView).focus()
+
+    def refresh_view(self) -> None:
         self.refresh_tasks()
         self.refresh_stats()
         self.refresh_timer()
+        self._update_subtitle()
 
     def refresh_timer(self) -> None:
         td = self.query_one(TimerDisplay)
@@ -76,12 +118,41 @@ class DashboardScreen(Screen):
         td.running = eng.running
         td.cycles = eng.completed_focus_cycles
         td.active_task = self.app.active_task.title if self.app.active_task else ""
+        td.active_tasks = [t.title for t in self.app.active_tasks]
+        td.active_index = self.app.active_chip_index
 
     def refresh_tasks(self) -> None:
         lv = self.query_one("#task-list", ListView)
         lv.clear()
-        for t in self.app.db.list_tasks():
-            lv.append(TaskItem(t))
+        pf = self.app.project_filter_for_db()
+        tasks = self.app.db.list_tasks(project_filter=pf)
+        if self.app.active_sprint_id is not None:
+            tasks = [t for t in tasks if t.sprint_id == self.app.active_sprint_id]
+        # Project resolution cache
+        proj_cache: dict[int, tuple[str, str]] = {}
+        for t in tasks:
+            pname = pcolor = None
+            if t.project_id is not None:
+                if t.project_id not in proj_cache:
+                    try:
+                        p = self.app.db.get_project(t.project_id)
+                        proj_cache[t.project_id] = (p.name, p.color)
+                    except Exception:
+                        proj_cache[t.project_id] = ("?", "white")
+                pname, pcolor = proj_cache[t.project_id]
+            lv.append(TaskItem(t, project_name=pname, project_color=pcolor))
+
+    def _update_subtitle(self) -> None:
+        label = self.app.active_project_label() or ""
+        if self.app.active_sprint_id is not None:
+            try:
+                label = f"{label}  ▸ {self.app.db.get_sprint(self.app.active_sprint_id).name}"
+            except Exception:
+                pass
+        try:
+            self.sub_title = label.strip()
+        except Exception:
+            pass
 
     def refresh_stats(self) -> None:
         s = self.app.db.stats_today()
@@ -92,6 +163,14 @@ class DashboardScreen(Screen):
 
     def action_new_task(self) -> None:
         self.query_one("#task-input", Input).focus()
+
+    def action_cycle_active_chip(self) -> None:
+        """Cosmetic: highlight the next active-task chip. Never touches the engine."""
+        n = len(self.app.active_tasks)
+        if n <= 1:
+            return
+        self.app.active_chip_index = (self.app.active_chip_index + 1) % n
+        self.refresh_timer()
 
     def on_list_view_selected(self, event: ListView.Selected) -> None:
         if isinstance(event.item, TaskItem):

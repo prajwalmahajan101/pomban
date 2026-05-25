@@ -3,10 +3,10 @@ from __future__ import annotations
 from textual.app import ComposeResult
 from textual.binding import Binding
 from textual.containers import Horizontal, Vertical, VerticalScroll
-from textual.screen import Screen
 from textual.widgets import Footer, Header, Input, Static
 
 from pomodoro.core.models import Task
+from pomodoro.screens.base import AppScreen
 from pomodoro.widgets.card import TaskCard
 
 
@@ -14,7 +14,27 @@ COLUMNS = ("todo", "doing", "done")
 COLUMN_LABEL = {"todo": "To Do", "doing": "Doing", "done": "Done"}
 
 
-class KanbanScreen(Screen):
+def _project_info(app, task: Task) -> tuple[str | None, str | None]:
+    """Resolve (project_name, project_color) for a task."""
+    if task.project_id is None:
+        return None, None
+    try:
+        p = app.db.get_project(task.project_id)
+        return p.name, p.color
+    except Exception:
+        return None, None
+
+
+def _sprint_name(app, task: Task) -> str | None:
+    if task.sprint_id is None:
+        return None
+    try:
+        return app.db.get_sprint(task.sprint_id).name
+    except Exception:
+        return None
+
+
+class KanbanScreen(AppScreen):
     CSS = """
     KanbanScreen { layout: vertical; }
     #board { height: 1fr; }
@@ -24,6 +44,8 @@ class KanbanScreen(Screen):
         margin: 0 1;
         padding: 0 1;
     }
+    .column.-active-col { border: round $accent; }
+    .column.-active-col > .column-title { background: $accent; color: $text; text-style: bold; }
     .column-title { background: $panel; padding: 0 1; }
     .column-body { height: 1fr; }
     #kanban-input { dock: bottom; }
@@ -32,20 +54,28 @@ class KanbanScreen(Screen):
     BINDINGS = [
         Binding("h", "cursor_left", "←", show=False),
         Binding("l", "cursor_right", "→", show=False),
+        Binding("tab", "cursor_right", "Next col", show=False),
+        Binding("shift+tab", "cursor_left", "Prev col", show=False),
         Binding("j", "cursor_down", "↓", show=False),
         Binding("k", "cursor_up", "↑", show=False),
         Binding("shift+h,H,<,comma", "move_card_left", "Move ←"),
         Binding("shift+l,L,>,.", "move_card_right", "Move →"),
         Binding("shift+j,J,]", "reorder_down", "▼"),
         Binding("shift+k,K,[", "reorder_up", "▲"),
+        Binding("o", "reopen", "Reopen"),
         Binding("n", "new_card", "New"),
         Binding("d,x", "delete_card", "Delete"),
         Binding("c", "complete_card", "Done"),
+        Binding("e", "app.edit_task", "Edit"),
+        Binding("v", "toggle_visual", "Select"),
+        Binding("space", "toggle_select", "Toggle", show=False),
         Binding("enter,s", "start_focus", "Focus"),
         Binding("1", "app.switch('dashboard')", "Dashboard"),
         Binding("2", "app.switch('kanban')", "Kanban"),
         Binding("3", "app.switch('stats')", "Stats", show=False),
         Binding("4", "app.switch('history')", "History", show=False),
+        Binding("5", "app.switch('projects')", "Projects", show=False),
+        Binding("6", "app.switch('sprints')", "Sprints", show=False),
         Binding("question_mark", "app.help", "Help"),
         Binding("t", "app.cycle_theme", "Theme"),
         Binding("q", "app.quit", "Quit"),
@@ -56,6 +86,9 @@ class KanbanScreen(Screen):
         # cursor: column index 0..2, row index within that column
         self.col = 0
         self.row = 0
+        # Multi-task visual select (Mode B): toggle with `v`, pick cards with Space.
+        self.visual_mode = False
+        self.selected_ids: set[int] = set()
 
     def compose(self) -> ComposeResult:
         yield Header(show_clock=True)
@@ -73,23 +106,60 @@ class KanbanScreen(Screen):
         self.refresh_board()
         self.query_one("#kanban-input", Input).can_focus = True
 
+    def refresh_view(self) -> None:
+        self.refresh_board()
+
     # ---------- render ----------
     def refresh_board(self) -> None:
-        groups = self.app.db.list_tasks_by_status()
+        pf = self.app.project_filter_for_db()
+        groups = self.app.db.list_tasks_by_status(project_filter=pf)
+        # Apply sprint filter on top if set
+        sprint_id = self.app.active_sprint_id
         for status in COLUMNS:
             body = self.query_one(f"#body-{status}", VerticalScroll)
             body.remove_children()
             tasks = groups.get(status, [])
+            if sprint_id is not None:
+                tasks = [t for t in tasks if t.sprint_id == sprint_id]
             for t in tasks:
-                body.mount(TaskCard(t))
+                pname, pcolor = _project_info(self.app, t)
+                sname = _sprint_name(self.app, t)
+                actual = self.app.db.task_actual_pomodoros(t.id)
+                body.mount(TaskCard(t, project_name=pname, project_color=pcolor,
+                                    sprint_name=sname, actual_pomodoros=actual))
             title = self.query_one(f"#title-{status}", Static)
             title.update(f"[b]{COLUMN_LABEL[status]}[/] ({len(tasks)})")
+        # Update header to show active filter
+        try:
+            label = self.app.active_project_label()
+            sprint_label = None
+            if sprint_id is not None:
+                try:
+                    sprint_label = self.app.db.get_sprint(sprint_id).name
+                except Exception:
+                    sprint_label = None
+            tag_parts = []
+            if label:
+                tag_parts.append(f"[reverse {self.app.active_project_color()}] {label} [/]")
+            if sprint_label:
+                tag_parts.append(f"[bright_yellow]▸ {sprint_label}[/]")
+            extra = "  ".join(tag_parts)
+            try:
+                self.sub_title = label or ""
+            except Exception:
+                pass
+        except Exception:
+            pass
         self._clamp_cursor()
         self._paint_cursor()
 
     def _column_tasks(self, col_idx: int) -> list[Task]:
         status = COLUMNS[col_idx]
-        return self.app.db.list_tasks(status=status)
+        pf = self.app.project_filter_for_db()
+        tasks = self.app.db.list_tasks(status=status, project_filter=pf)
+        if self.app.active_sprint_id is not None:
+            tasks = [t for t in tasks if t.sprint_id == self.app.active_sprint_id]
+        return tasks
 
     def _clamp_cursor(self) -> None:
         n = len(self._column_tasks(self.col))
@@ -98,15 +168,37 @@ class KanbanScreen(Screen):
         else:
             self.row = max(0, min(self.row, n - 1))
 
+    def check_action(self, action: str, parameters: tuple[object, ...]) -> bool | None:
+        """Context-sensitive keymap: which actions apply depends on the active column.
+
+        Returning False hides the binding from the Footer, so the visible keymap
+        changes as you move between To Do / Doing / Done (lazydocker-style).
+        """
+        if action == "move_card_left":
+            return self.col > 0
+        if action == "move_card_right":
+            return self.col < len(COLUMNS) - 1
+        if action == "start_focus":
+            return COLUMNS[self.col] != "done"   # focusing a done task is meaningless
+        if action == "complete_card":
+            return COLUMNS[self.col] != "done"   # already done
+        if action == "reopen":
+            return COLUMNS[self.col] == "done"   # only Done can be reopened
+        return True
+
     def _paint_cursor(self) -> None:
-        for status in COLUMNS:
+        for i, status in enumerate(COLUMNS):
+            self.query_one(f"#col-{status}", Vertical).set_class(i == self.col, "-active-col")
             body = self.query_one(f"#body-{status}", VerticalScroll)
             for card in body.query(TaskCard):
                 card.remove_class("-focused")
+                card.set_class(card.task_data.id in self.selected_ids, "-selected")
         focused = self.focused_card()
         if focused:
             focused.add_class("-focused")
             focused.scroll_visible()
+        # The visible footer keymap depends on the active column — refresh it.
+        self.refresh_bindings()
 
     def focused_card(self) -> TaskCard | None:
         body = self.query_one(f"#body-{COLUMNS[self.col]}", VerticalScroll)
@@ -191,7 +283,58 @@ class KanbanScreen(Screen):
         self.app.db.move_task(card.task_data.id, "done")
         self.refresh_board()
 
+    def action_reopen(self) -> None:
+        """Done → To Do. Only meaningful on the Done column (see check_action)."""
+        card = self.focused_card()
+        if not card or COLUMNS[self.col] != "done":
+            return
+        self.app.db.move_task(card.task_data.id, "todo")
+        self.refresh_board()
+
+    def action_toggle_visual(self) -> None:
+        self.visual_mode = not self.visual_mode
+        if not self.visual_mode:
+            self.selected_ids.clear()
+        try:
+            self.app.notify(
+                "Visual select: Space to pick, s/Enter to focus the batch"
+                if self.visual_mode else "Visual select off",
+                timeout=2,
+            )
+        except Exception:
+            pass
+        self._paint_cursor()
+
+    def action_toggle_select(self) -> None:
+        if not self.visual_mode:
+            return
+        card = self.focused_card()
+        if not card:
+            return
+        tid = card.task_data.id
+        if tid in self.selected_ids:
+            self.selected_ids.discard(tid)
+        else:
+            self.selected_ids.add(tid)
+        self._paint_cursor()
+
+    def _selected_tasks(self) -> list[Task]:
+        """Collect Task objects for selected ids, preserving board order."""
+        out: list[Task] = []
+        for status in COLUMNS:
+            body = self.query_one(f"#body-{status}", VerticalScroll)
+            for card in body.query(TaskCard):
+                if card.task_data.id in self.selected_ids:
+                    out.append(card.task_data)
+        return out
+
     def action_start_focus(self) -> None:
+        if self.visual_mode and self.selected_ids:
+            tasks = self._selected_tasks()
+            self.visual_mode = False
+            self.selected_ids.clear()
+            self.app.start_focus_on_many(tasks)
+            return
         card = self.focused_card()
         if not card:
             return

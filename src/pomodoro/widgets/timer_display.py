@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from rich.markup import escape
 from textual.reactive import reactive
 from textual.widgets import Static
 
@@ -32,6 +33,8 @@ class TimerDisplay(Static):
     running: reactive[bool] = reactive(False)
     cycles: reactive[int] = reactive(0)
     active_task: reactive[str] = reactive("")
+    active_tasks: reactive[list[str]] = reactive(list)
+    active_index: reactive[int] = reactive(0)
 
     DEFAULT_CSS = """
     TimerDisplay {
@@ -48,7 +51,15 @@ class TimerDisplay(Static):
         cycles_in_round = self.cycles % 4
         dots = "".join("●" if i < cycles_in_round else "○" for i in range(4))
         state = "▶ running" if self.running else ("⏸ paused" if self.phase != Phase.IDLE else "")
-        task_line = f"[dim]on:[/dim] [b]{self.active_task}[/b]" if self.active_task else ""
+        if len(self.active_tasks) > 1:
+            chips = []
+            for i, name in enumerate(self.active_tasks):
+                nm = escape(name)
+                chips.append(f"[reverse] {nm} [/]" if i == self.active_index
+                             else f"[dim] {nm} [/]")
+            task_line = "[dim]on:[/dim] " + " · ".join(chips) + "  [dim](Tab)[/]"
+        else:
+            task_line = f"[dim]on:[/dim] [b]{escape(self.active_task)}[/b]" if self.active_task else ""
         return (
             f"[{color}]{label}[/]\n\n"
             f"[bold]{time_str}[/]\n\n"
