@@ -10,6 +10,8 @@ from pomodoro.core.config import Config, save as save_config
 from pomodoro.core import log
 from pomodoro.core.db import DB
 from pomodoro.core.filters import ProjectFilter
+from pomodoro.core.filter_state import FilterState
+from pomodoro.core.session_coordinator import SessionCoordinator
 from pomodoro.core.models import Task
 from pomodoro.core.session_service import SessionService
 from pomodoro.core.timer_engine import Event, Phase, Settings, TimerEngine
@@ -34,6 +36,10 @@ THEMES = ["nord", "gruvbox", "dracula", "catppuccin-mocha"]
 
 class PomodoroApp(App):
     SCREENS = {}  # registered in __init__ so we can pass per-instance state
+
+    # Responsive: Textual auto-applies the class to each screen by width.
+    # < 90 cols → "-narrow" (panes stack); >= 90 → "-wide".
+    HORIZONTAL_BREAKPOINTS = [(0, "-narrow"), (90, "-wide")]
 
     BINDINGS = [
         Binding("q", "quit", "Quit", show=False),
@@ -68,11 +74,9 @@ class PomodoroApp(App):
         # cosmetic chip highlight on the Dashboard timer.
         self.active_tasks: list[Task] = []
         self.active_chip_index: int = 0
-        self.current_session_id: int | None = None
-        self.session_start_monotonic: float | None = None
+        self.coord = SessionCoordinator(self.engine, self.db, self.sessions)
         # Filters persisted in config_kv: ui.active_project / ui.active_sprint
-        self.project_filter = ProjectFilter.from_kv(self.db.kv_get("ui.active_project"))
-        self.active_sprint_id: int | None = self._load_filter("ui.active_sprint")
+        self.filters = FilterState(self.db)
         try:
             self._theme_idx = THEMES.index(self.config.ui.theme)
         except ValueError:
@@ -87,6 +91,25 @@ class PomodoroApp(App):
     def active_task(self, task: Task | None) -> None:
         self.active_tasks = [task] if task else []
 
+    # Session bookkeeping lives in self.coord; expose the two fields as properties
+    # so existing call sites (and tests) keep using app.current_session_id /
+    # app.session_start_monotonic unchanged.
+    @property
+    def current_session_id(self) -> int | None:
+        return self.coord.current_session_id
+
+    @current_session_id.setter
+    def current_session_id(self, value: int | None) -> None:
+        self.coord.current_session_id = value
+
+    @property
+    def session_start_monotonic(self) -> float | None:
+        return self.coord.session_start_monotonic
+
+    @session_start_monotonic.setter
+    def session_start_monotonic(self, value: float | None) -> None:
+        self.coord.session_start_monotonic = value
+
     def on_mount(self) -> None:
         from pomodoro.screens.projects import ProjectsScreen
         from pomodoro.screens.sprints import SprintsScreen
@@ -96,6 +119,9 @@ class PomodoroApp(App):
         self.install_screen(HistoryScreen(), name="history")
         self.install_screen(ProjectsScreen(), name="projects")
         self.install_screen(SprintsScreen(), name="sprints")
+        if self.config.music.music_screen:
+            from pomodoro.screens.music import MusicScreen
+            self.install_screen(MusicScreen(self.music), name="music")
         self.push_screen("dashboard")
         plugin_registry().discover()
         self._maybe_prompt_resume()
@@ -123,11 +149,11 @@ class PomodoroApp(App):
             scr = self.screen
         except Exception:
             return
-        if hasattr(scr, "refresh_timer"):
+        if isinstance(scr, AppScreen):
             try:
                 scr.refresh_timer()
             except Exception:
-                pass
+                log.exception("refresh_timer failed on %s", type(scr).__name__)
 
     def _refresh_all(self) -> None:
         try:
@@ -172,11 +198,7 @@ class PomodoroApp(App):
             # Classic Pomodoro flow: advance straight to the next phase, no modal.
             # The session ended naturally (completed), but we do NOT mark the active
             # task(s) done — timer expiry isn't completion intent; they stay in Doing.
-            sid = self.current_session_id
-            if sid is not None:
-                self.sessions.end(sid, actual_seconds=actual, completed=True)
-            self.current_session_id = None
-            self.session_start_monotonic = None
+            self.coord.end(actual, completed=True)
             self.engine.confirm_advance(time.monotonic())
             self._log_new_session()
             self._refresh_all()
@@ -204,27 +226,7 @@ class PomodoroApp(App):
         self._refresh_active_screen_timer()
 
     def _should_suggest_lunch(self, completed_phase: Phase) -> bool:
-        if completed_phase != Phase.FOCUS:
-            return False
-        breaks = getattr(self.config, "breaks", None)
-        if breaks is None:
-            return False
-        if not breaks.lunch_window_start or not breaks.lunch_window_end:
-            return False
-        from datetime import datetime
-        try:
-            now = datetime.now().time()
-            start_h, start_m = (int(x) for x in breaks.lunch_window_start.split(":"))
-            end_h, end_m = (int(x) for x in breaks.lunch_window_end.split(":"))
-        except Exception:
-            return False
-        start = (start_h, start_m)
-        end = (end_h, end_m)
-        cur = (now.hour, now.minute)
-        if not (start <= cur <= end):
-            return False
-        # Was lunch already taken today? (cached — keeps this off the tick path)
-        return not self.sessions.lunch_taken_today()
+        return self.coord.should_suggest_lunch(completed_phase, self.config)
 
     def _on_session_end_result(self, result: dict | None) -> None:
         actual = self._pending_actual_seconds
@@ -341,21 +343,9 @@ class PomodoroApp(App):
         if self.engine.phase == Phase.IDLE:
             return
         self._fire_phase_hooks(starting=True, phase=self.engine.phase)
-        task_ids = (
-            [t.id for t in self.active_tasks]
-            if self.engine.phase == Phase.FOCUS
-            else []
-        )
-        planned = {
-            Phase.FOCUS: self.engine.settings.focus_seconds,
-            Phase.SHORT_BREAK: self.engine.settings.short_break_seconds,
-            Phase.LONG_BREAK: self.engine.settings.long_break_seconds,
-            Phase.LONG_PAUSE: self.engine.remaining or 45 * 60,
-        }.get(self.engine.phase, 0)
-        self.current_session_id = self.sessions.start(
-            self.engine.phase.value, planned, task_ids
-        )
-        self.session_start_monotonic = time.monotonic()
+        task_ids = ([t.id for t in self.active_tasks]
+                    if self.engine.phase == Phase.FOCUS else [])
+        self.coord.begin(task_ids)
 
     # ---------- public API used by screens ----------
     def start_focus_on(self, task: Task) -> None:
@@ -382,54 +372,28 @@ class PomodoroApp(App):
         self._refresh_all()
 
     def add_task_from_input(self, text: str) -> Task:
-        """Parse inline metadata syntax and create the task.
+        """Create a task from the inline-metadata mini-syntax.
 
-        Examples:
-          "Write report #docs #urgent"           → tags=docs,urgent
-          "Write report @client-acme #docs ~3"   → project=client-acme, tags=docs, estimate=3
-          "Wire OAuth @work !v1.0 ~5 #backend"   → project=work, sprint=v1.0, tags=backend, est=5
-        First @token wins (later ones become title words). First !token wins. First ~N wins.
+        Parsing lives in the pure ``core.task_input.parse_task_input``; this method
+        resolves project/sprint names to ids and applies the active-filter defaults:
+        a real project filter sets the project; the active sprint is inherited only
+        when the user didn't type an explicit ``@project`` (the sprint is scoped to
+        the filter project, so applying it elsewhere would be inconsistent).
         """
-        words = text.split()
-        title_words: list[str] = []
-        tags: list[str] = []
-        project_name: str | None = None
-        sprint_name: str | None = None
-        estimate = 0
-        for w in words:
-            if w.startswith("#") and len(w) > 1:
-                tags.append(w[1:])
-            elif w.startswith("@") and len(w) > 1 and project_name is None:
-                project_name = w[1:]
-            elif w.startswith("!") and len(w) > 1 and sprint_name is None:
-                sprint_name = w[1:]
-            elif w.startswith("~") and len(w) > 1 and estimate == 0:
-                try:
-                    estimate = int(w[1:])
-                except ValueError:
-                    title_words.append(w)
-            else:
-                title_words.append(w)
-        title = " ".join(title_words) or text
+        from pomodoro.core.task_input import parse_task_input
+        parsed = parse_task_input(text)
         project_id: int | None = None
         sprint_id: int | None = None
-        if project_name:
-            proj = self.db.get_or_create_project(project_name)
-            project_id = proj.id
+        if parsed.project_name:
+            project_id = self.db.get_or_create_project(parsed.project_name).id
         elif self.project_filter.scoped_project_id is not None:
-            # If a real project filter is active, default new tasks to that project.
             project_id = self.project_filter.scoped_project_id
-        if sprint_name:
-            sp = self.db.get_or_create_sprint(project_id, sprint_name)
-            sprint_id = sp.id
-        elif self.active_sprint_id is not None and not project_name:
-            # Default to the active sprint filter so a new task isn't immediately
-            # filtered out of the board it was added from. Only when the user didn't
-            # type an explicit @project (the active sprint is scoped to the filter
-            # project, so applying it to a different project would be inconsistent).
+        if parsed.sprint_name:
+            sprint_id = self.db.get_or_create_sprint(project_id, parsed.sprint_name).id
+        elif self.active_sprint_id is not None and not parsed.project_name:
             sprint_id = self.active_sprint_id
-        return self.db.add_task(title, tags=",".join(tags),
-                                estimated_pomodoros=estimate,
+        return self.db.add_task(parsed.title, tags=parsed.tags_csv,
+                                estimated_pomodoros=parsed.estimate,
                                 project_id=project_id, sprint_id=sprint_id)
 
     def delete_task_by_id(self, task_id: int) -> None:
@@ -438,8 +402,15 @@ class PomodoroApp(App):
 
     # ---------- global actions ----------
     def action_switch(self, name: str) -> None:
-        if name in ("dashboard", "kanban", "stats", "history", "projects", "sprints"):
-            self.switch_screen(name)
+        valid = ["dashboard", "kanban", "stats", "history", "projects", "sprints"]
+        if self.config.music.music_screen:
+            valid.append("music")
+        if name in valid:
+            try:
+                self.switch_screen(name)
+            except Exception:
+                log.exception("switch_screen failed for %s", name)
+                return
             scr = self.screen
             if isinstance(scr, AppScreen):
                 try:
@@ -461,20 +432,14 @@ class PomodoroApp(App):
 
     def action_reset(self) -> None:
         if self.current_session_id is not None and self.session_start_monotonic is not None:
-            actual = int(time.monotonic() - self.session_start_monotonic)
-            self.sessions.end(self.current_session_id, actual_seconds=actual, completed=False)
-            self.current_session_id = None
-            self.session_start_monotonic = None
+            self.coord.end(self.coord.elapsed(), completed=False)
         self.engine.reset()
         self._refresh_all()
 
     def action_skip(self) -> None:
         events = self.engine.skip(time.monotonic())
         if Event.PHASE_COMPLETED in events and self.current_session_id is not None:
-            actual = int(time.monotonic() - (self.session_start_monotonic or time.monotonic()))
-            self.sessions.end(self.current_session_id, actual_seconds=actual, completed=False)
-            self.current_session_id = None
-            self.session_start_monotonic = None
+            self.coord.end(self.coord.elapsed(), completed=False)
             self._log_new_session()
         self._refresh_all()
 
@@ -544,6 +509,8 @@ class PomodoroApp(App):
             tags=result["tags"],
             estimated_pomodoros=result["estimate"],
             project_id=project_id,
+            due_date=result.get("due_date", ""),
+            priority=result.get("priority", 0),
         )
         self._refresh_all()
 
@@ -655,43 +622,23 @@ class PomodoroApp(App):
         except Exception:
             pass
 
-    # ---------- project / sprint filter ----------
-    def _load_filter(self, key: str) -> int | None:
-        if not hasattr(self, "db") or self.db is None:
-            return None
-        val = self.db.kv_get(key)
-        if not val:
-            return None
-        try:
-            return int(val)
-        except ValueError:
-            return None
+    # ---------- project / sprint filter (state lives in self.filters) ----------
+    @property
+    def project_filter(self) -> ProjectFilter:
+        return self.filters.project
 
-    def _save_filter(self, key: str, value: int | str | None) -> None:
-        if value is None:
-            self.db.kv_delete(key)
-        else:
-            self.db.kv_set(key, str(value))
+    @property
+    def active_sprint_id(self) -> int | None:
+        return self.filters.sprint_id
+
+    @active_sprint_id.setter
+    def active_sprint_id(self, value: int | None) -> None:
+        # Direct assignment sets state without persisting (used by tests / internal
+        # paths); use set_active_sprint() to persist + refresh.
+        self.filters.sprint_id = value
 
     def set_project_filter(self, pf: ProjectFilter) -> None:
-        self.project_filter = pf
-        # Switching to All/Inbox, or to a different project, may invalidate the
-        # active sprint (sprints are scoped to a project).
-        scope_pid = pf.scoped_project_id
-        if scope_pid is None:
-            if self.active_sprint_id is not None:
-                self.active_sprint_id = None
-                self._save_filter("ui.active_sprint", None)
-        elif self.active_sprint_id is not None:
-            try:
-                sp = self.db.get_sprint(self.active_sprint_id)
-                if sp.project_id != scope_pid:
-                    self.active_sprint_id = None
-                    self._save_filter("ui.active_sprint", None)
-            except Exception:
-                self.active_sprint_id = None
-                self._save_filter("ui.active_sprint", None)
-        self._save_filter("ui.active_project", pf.to_kv())
+        self.filters.set_project(pf)
         self._refresh_all()
 
     def set_active_project(self, project_id: int | None) -> None:
@@ -701,8 +648,7 @@ class PomodoroApp(App):
         )
 
     def set_active_sprint(self, sprint_id: int | None) -> None:
-        self.active_sprint_id = sprint_id
-        self._save_filter("ui.active_sprint", sprint_id)
+        self.filters.set_sprint(sprint_id)
         self._refresh_all()
 
     def action_pick_project(self) -> None:
@@ -753,26 +699,13 @@ class PomodoroApp(App):
 
     def project_filter_for_db(self):
         """Translate the active filter into the db.list_tasks `project_filter` value."""
-        return self.project_filter.for_db()
+        return self.filters.for_db()
 
     def active_project_label(self) -> str | None:
-        pf = self.project_filter
-        if pf.is_all:
-            return None
-        if pf.is_inbox:
-            return "Inbox"
-        try:
-            return self.db.get_project(pf.project_id).name
-        except Exception:
-            return None
+        return self.filters.project_label()
 
     def active_project_color(self) -> str:
-        if not self.project_filter.is_project:
-            return "white"
-        try:
-            return self.db.get_project(self.project_filter.project_id).color
-        except Exception:
-            return "white"
+        return self.filters.project_color()
 
     def action_pick_sprint(self) -> None:
         from pomodoro.screens.sprint_picker import SprintPickerModal
@@ -804,20 +737,17 @@ class PomodoroApp(App):
         from pomodoro.core.timer_engine import Phase
         # If a session is running, log an interruption with reason, end it as incomplete.
         if self.current_session_id is not None and self.session_start_monotonic is not None:
-            actual = int(time.monotonic() - self.session_start_monotonic)
             try:
                 self.sessions.log_interruption(self.current_session_id, reason=label)
             except Exception:
-                pass
-            self.sessions.end(self.current_session_id, actual_seconds=actual, completed=False)
-            self.current_session_id = None
-            self.session_start_monotonic = None
+                log.exception("log_interruption failed for session %s", self.current_session_id)
+            self.coord.end(self.coord.elapsed(), completed=False)
         # Remember the phase we interrupted so the engine resumes it after the pause.
         prev_phase = self.engine.phase
         self.engine.enter_long_pause(seconds, time.monotonic(), resume_phase=prev_phase)
-        # Log the long pause as a session.
-        self.current_session_id = self.sessions.start("long_pause", seconds, task_ids=[])
-        self.session_start_monotonic = time.monotonic()
+        # Log the long pause as a session (engine is now in LONG_PAUSE with
+        # remaining == seconds, so coord.begin records the right planned time).
+        self.coord.begin([])
         try:
             self.notify(f"⏸  {label} started ({seconds // 60} min)", timeout=3)
         except Exception:
