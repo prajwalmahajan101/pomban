@@ -8,7 +8,7 @@ from pathlib import Path
 
 from pomodoro.core.models import Project, Sprint, Task
 
-SCHEMA_VERSION = 8
+SCHEMA_VERSION = 9
 
 # Sentinel: distinguishes "no project filter" from "Inbox only" (project_id IS NULL).
 _NO = object()
@@ -212,21 +212,38 @@ class DB:
                 ALTER TABLE sessions_new RENAME TO sessions;
                 """
             )
-            self.conn.execute(f"PRAGMA user_version = {SCHEMA_VERSION}")
+            # Stamp the literal target version (not SCHEMA_VERSION) so each block is
+            # atomic: a later block crashing can't leave this one marked done.
+            self.conn.execute("PRAGMA user_version = 8")
             self.conn.commit()
             self.conn.execute("PRAGMA foreign_keys = ON")
+            version = 8
+        if version < 9:
+            # Due dates + priority on tasks (kanban enhancements).
+            # priority: 0=none, 1=low, 2=med, 3=high. due_date: ISO 'YYYY-MM-DD' or ''.
+            self.conn.executescript(
+                """
+                ALTER TABLE tasks ADD COLUMN due_date TEXT NOT NULL DEFAULT '';
+                ALTER TABLE tasks ADD COLUMN priority INTEGER NOT NULL DEFAULT 0;
+                """
+            )
+            self.conn.execute(f"PRAGMA user_version = {SCHEMA_VERSION}")
+            self.conn.commit()
+            version = 9
 
     # ---------- tasks ----------
     def add_task(self, title: str, tags: str = "", estimated_pomodoros: int = 0,
-                 project_id: int | None = None, sprint_id: int | None = None) -> Task:
+                 project_id: int | None = None, sprint_id: int | None = None,
+                 due_date: str = "", priority: int = 0) -> Task:
         now = _now_iso()
         cur = self.conn.execute(
             "INSERT INTO tasks (title, status, tags, estimated_pomodoros, position,"
-            " project_id, sprint_id, created_at, updated_at)"
+            " project_id, sprint_id, due_date, priority, created_at, updated_at)"
             " VALUES (?, 'todo', ?, ?,"
             " COALESCE((SELECT MAX(position)+1 FROM tasks WHERE status='todo'), 0),"
-            " ?, ?, ?, ?)",
-            (title, tags, estimated_pomodoros, project_id, sprint_id, now, now),
+            " ?, ?, ?, ?, ?, ?)",
+            (title, tags, estimated_pomodoros, project_id, sprint_id,
+             due_date, priority, now, now),
         )
         self.conn.commit()
         return self.get_task(cur.lastrowid)
@@ -879,6 +896,8 @@ def _row_to_task(row: sqlite3.Row) -> Task:
         project_id=row["project_id"] if "project_id" in keys else None,
         sprint_id=row["sprint_id"] if "sprint_id" in keys else None,
         notes=(row["notes"] if "notes" in keys else "") or "",
+        due_date=(row["due_date"] if "due_date" in keys else "") or "",
+        priority=(row["priority"] if "priority" in keys else 0) or 0,
     )
 
 

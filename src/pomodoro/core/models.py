@@ -19,6 +19,8 @@ class Task:
     project_id: Optional[int] = None
     sprint_id: Optional[int] = None
     notes: str = ""
+    due_date: str = ""          # ISO 'YYYY-MM-DD' or '' (none)
+    priority: int = 0           # 0=none, 1=low, 2=med, 3=high
 
 
 @dataclass

@@ -93,6 +93,13 @@ def test_migration_v8_drops_stale_kind_check(tmp_path):
         );
         INSERT INTO sessions (kind, started_at, planned_seconds) VALUES ('focus','2026-01-01T09:00:00',1500);
         INSERT INTO session_tasks (session_id, task_id) VALUES (1, 1);
+        CREATE TABLE tasks (
+          id INTEGER PRIMARY KEY, title TEXT NOT NULL,
+          status TEXT NOT NULL CHECK(status IN ('todo','doing','done')),
+          tags TEXT DEFAULT '', estimated_pomodoros INTEGER DEFAULT 0,
+          position INTEGER DEFAULT 0, project_id INTEGER, sprint_id INTEGER,
+          notes TEXT NOT NULL DEFAULT '', created_at TEXT NOT NULL, updated_at TEXT NOT NULL
+        );
         PRAGMA user_version = 7;
         """
     )
@@ -101,7 +108,8 @@ def test_migration_v8_drops_stale_kind_check(tmp_path):
 
     db = DB(p)  # runs migration v8
     try:
-        assert db.conn.execute("PRAGMA user_version").fetchone()[0] == 8
+        from pomodoro.core.db import SCHEMA_VERSION
+        assert db.conn.execute("PRAGMA user_version").fetchone()[0] == SCHEMA_VERSION
         # Existing data survived the rebuild (no cascade wipe).
         assert db.conn.execute("SELECT COUNT(*) FROM sessions").fetchone()[0] == 1
         assert db.conn.execute("SELECT COUNT(*) FROM session_tasks").fetchone()[0] == 1
