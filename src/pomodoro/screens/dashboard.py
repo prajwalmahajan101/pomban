@@ -12,6 +12,7 @@ from pomodoro.widgets.music_panel import MusicPanel
 from pomodoro.widgets.stats_strip import StatsStrip
 from pomodoro.widgets.timer_display import TimerDisplay
 from pomodoro.widgets.card import render_project_badge
+from pomodoro.widgets.panel import panel_title
 
 
 class TaskItem(ListItem):
@@ -54,6 +55,10 @@ class DashboardScreen(AppScreen):
     #task-list { height: 1fr; }
     #task-input { dock: bottom; }
     .pane-title { padding: 0 1; background: $panel; color: $text; }
+    /* Responsive: stack Timer above Tasks on a narrow terminal. */
+    DashboardScreen.-narrow #main { layout: vertical; }
+    DashboardScreen.-narrow #timer-pane { width: 1fr; height: auto; }
+    DashboardScreen.-narrow #task-pane { width: 1fr; height: 1fr; }
     """
 
     BINDINGS = [
@@ -61,6 +66,10 @@ class DashboardScreen(AppScreen):
         # Tab/Shift+Tab cycle focus between panels (default Textual focus movement);
         # the active-task chip cycle moves to backtick to free Tab.
         Binding("grave_accent", "cycle_active_chip", "Cycle task", show=False),
+        # btop-style pane selection: press the highlighted letter in a pane title.
+        Binding("i", "focus_pane('timer-pane')", "Timer pane", show=False),
+        Binding("a", "focus_pane('task-list')", "Tasks pane", show=False),
+        Binding("u", "focus_pane('music-pane')", "Music pane", show=False),
         Binding("r", "app.reset", "Reset"),
         Binding("shift+s,S", "app.skip", "Skip"),
         Binding("enter", "app.start_on_selected", "Start", show=False),
@@ -74,6 +83,7 @@ class DashboardScreen(AppScreen):
         Binding("4", "app.switch('history')", "History", show=False),
         Binding("5", "app.switch('projects')", "Projects", show=False),
         Binding("6", "app.switch('sprints')", "Sprints", show=False),
+        Binding("7", "app.switch('music')", "Music", show=False),
         Binding("question_mark", "app.help", "Help"),
         Binding("t", "app.cycle_theme", "Theme"),
         Binding("q", "app.quit", "Quit"),
@@ -84,10 +94,10 @@ class DashboardScreen(AppScreen):
         yield StatsStrip(id="stats")
         with Horizontal(id="main"):
             with Vertical(id="timer-pane"):
-                yield Static("[b]Timer[/]", classes="pane-title")
+                yield Static(panel_title("Timer", "i"), classes="pane-title")
                 yield TimerDisplay(id="timer")
             with Vertical(id="task-pane"):
-                yield Static("[b]Tasks[/]", classes="pane-title")
+                yield Static(panel_title("Tasks", "a"), classes="pane-title")
                 yield ListView(id="task-list")
                 yield Input(placeholder="Add a task — use #tag inline", id="task-input")
         mcfg = self.app.config.music
