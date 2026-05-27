@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+from datetime import date
+
 from rich.markup import escape
 from textual.widget import Widget
 from textual.widgets import Static
@@ -46,6 +48,39 @@ def render_sprint_chip(name: str | None) -> str:
     return f"[{c}]▸ {label}[/]" if c else f"▸ {label}"
 
 
+# priority → (glyph, color). 0 (none) renders nothing.
+PRIORITY_GLYPH = {1: ("▲", "blue"), 2: ("▲", "yellow"), 3: ("▲", "red")}
+PRIORITY_LABELS = {0: "", 1: "low", 2: "med", 3: "high"}
+
+
+def render_priority(priority: int) -> str:
+    spec = PRIORITY_GLYPH.get(priority or 0)
+    if not spec:
+        return ""
+    glyph, color = spec
+    c = adapt(color)
+    return f"[{c}]{glyph}[/]" if c else glyph
+
+
+def render_due(due_date: str, today: str | None = None) -> str:
+    """`⏰ MM-DD`, red when overdue (vs today), dim otherwise. '' when no date."""
+    if not due_date:
+        return ""
+    today = today or date.today().isoformat()
+    overdue = due_date < today  # our own ISO 'YYYY-MM-DD'; lexicographic == chronological
+    label = escape(due_date[5:] if len(due_date) >= 5 else due_date)  # MM-DD
+    if overdue:
+        c = adapt("red")
+        return f"[{c}]⏰ {label}[/]" if c else f"(!) {label}"
+    return f"[dim]⏰ {label}[/]" if not _no_color() else f"~ {label}"
+
+
+def _no_color() -> bool:
+    # local import keeps the module's import surface unchanged
+    from pomodoro.core.colors import no_color
+    return no_color()
+
+
 class TaskCard(Static):
     DEFAULT_CSS = """
     TaskCard {
@@ -79,7 +114,9 @@ class TaskCard(Static):
         t = self.task_data
         mark = STATUS_MARK[t.status]
         badge = render_project_badge(self.project_name, self.project_color)
-        line1 = f"{badge} {mark} [b]{escape(t.title)}[/]"
+        prio = render_priority(t.priority)
+        prefix = f"{prio} " if prio else ""
+        line1 = f"{prefix}{badge} {mark} [b]{escape(t.title)}[/]"
         chips = render_chips(t.tags)
         # Estimate display: 🍅 actual/estimated when estimated > 0, plain 🍅×N otherwise
         if t.estimated_pomodoros:
@@ -90,8 +127,10 @@ class TaskCard(Static):
         else:
             est_str = ""
         notes_glyph = " [dim]📝[/]" if (t.notes or "").strip() else ""
+        due = render_due(t.due_date)
+        due_str = f" {due}" if due else ""
         sprint = render_sprint_chip(self.sprint_name)
-        body = f"{line1}{est_str}{notes_glyph}"
+        body = f"{line1}{est_str}{due_str}{notes_glyph}"
         extras = []
         if chips:
             extras.append(chips)

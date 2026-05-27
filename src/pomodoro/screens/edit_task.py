@@ -1,9 +1,11 @@
-"""Modal to edit an existing task's title, tags, estimate, and project.
+"""Modal to edit an existing task's title, tags, estimate, project, due, priority.
 
 Returns a dict on save, or None on cancel:
-  {"title": str, "tags": str, "estimate": int, "project": str}
-`tags` is comma-separated; `project` is a project name ("" clears the project).
-The app layer resolves the project name and writes via db.update_task.
+  {"title": str, "tags": str, "estimate": int, "project": str,
+   "due_date": str, "priority": int}
+`tags` is comma-separated; `project` is a project name ("" clears the project);
+`due_date` is ISO 'YYYY-MM-DD' or ''; `priority` is 0-3. The app layer resolves
+the project name and writes via db.update_task.
 """
 from __future__ import annotations
 
@@ -38,11 +40,11 @@ class EditTaskModal(ModalScreen[Optional[dict]]):
 
     def __init__(self, task: Task, project_name: str | None = None) -> None:
         super().__init__()
-        self.task = task
+        self.task_data = task
         self._project_name = project_name or ""
 
     def compose(self) -> ComposeResult:
-        t = self.task
+        t = self.task_data
         with Center():
             with Vertical():
                 yield Static("[b]Edit task[/] [dim](enter to save, esc to cancel)[/]")
@@ -54,6 +56,10 @@ class EditTaskModal(ModalScreen[Optional[dict]]):
                 yield Input(value=str(t.estimated_pomodoros or 0), id="edit-estimate")
                 yield Static("Project [dim](blank = Inbox)[/]", classes="label")
                 yield Input(value=self._project_name, id="edit-project")
+                yield Static("Due date [dim](YYYY-MM-DD, blank = none)[/]", classes="label")
+                yield Input(value=t.due_date, id="edit-due", placeholder="2026-06-01")
+                yield Static("Priority [dim](0 none · 1 low · 2 med · 3 high)[/]", classes="label")
+                yield Input(value=str(t.priority or 0), id="edit-priority")
 
     def action_save(self) -> None:
         title = self.query_one("#edit-title", Input).value.strip()
@@ -65,11 +71,25 @@ class EditTaskModal(ModalScreen[Optional[dict]]):
         try:
             estimate = max(0, int(estimate_raw)) if estimate_raw else 0
         except ValueError:
-            estimate = self.task.estimated_pomodoros or 0
+            estimate = self.task_data.estimated_pomodoros or 0
         if not title:
-            title = self.task.title
+            title = self.task_data.title
+        due_raw = self.query_one("#edit-due", Input).value.strip()
+        due = ""
+        if due_raw:
+            try:
+                from datetime import date as _date
+                _date.fromisoformat(due_raw)
+                due = due_raw
+            except ValueError:
+                due = self.task_data.due_date  # keep prior value on invalid input
+        prio_raw = self.query_one("#edit-priority", Input).value.strip()
+        try:
+            priority = max(0, min(3, int(prio_raw))) if prio_raw else 0
+        except ValueError:
+            priority = self.task_data.priority or 0
         self.dismiss({"title": title, "tags": tags, "estimate": estimate,
-                      "project": project})
+                      "project": project, "due_date": due, "priority": priority})
 
     def action_cancel(self) -> None:
         self.dismiss(None)
