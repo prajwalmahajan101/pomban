@@ -89,6 +89,17 @@ volume_step_db  = 2.0        # +/- volume increment (dB)
 # Auto-start a headless player on launch (no separate instance needed)
 autostart       = true
 daemon_args     = "--daemon" # args to run the player headless; "" disables
+# Full-screen music view (press 7)
+music_screen    = true       # register the dedicated Music section
+seek_seconds    = 5          # +/- seek step (seconds) on the music screen
+show_history    = true       # show "recently played" on the music screen
+
+[kanban]
+# Per-column work-in-progress limits; 0 = unlimited. A column over its limit is
+# flagged red (warns on move, never hard-blocks).
+wip_todo        = 0
+wip_doing       = 0
+wip_done        = 0
 
 # ───────────────────────────────────────────
 # Presets — repeat the [[preset]] block as many times as you want.
@@ -219,6 +230,9 @@ for that event. If the player binary isn't on `$PATH`, the app logs one line to
 | `volume_step_db` | float | 2.0 | Volume increment for the panel's `+`/`-` keys |
 | `autostart` | bool | true | Spawn a headless player daemon on launch so no separate instance is needed |
 | `daemon_args` | str | `"--daemon"` | Args to run the player headless; empty string disables auto-start |
+| `music_screen` | bool | true | Register the full-screen Music section (press `7`) |
+| `seek_seconds` | int | 5 | Seek step (seconds) for `[` / `]` on the music screen |
+| `show_history` | bool | true | Show "recently played" (`history --json`) on the music screen |
 
 **Auto-start.** On launch (when `enabled` and `autostart`), the app spawns
 `cliamp --daemon` in the background — a headless IPC server — so the panel works
@@ -238,6 +252,23 @@ blocks the timer — the panel just shows "not running". The rich panel features
 Global keys: `m` toggles play/pause, `Shift+M` skips track. Lunch / long pauses
 are treated as breaks (they fire `on_break_start` / `on_break_end`).
 `python -m pomodoro --with-music` still launches cliamp side-by-side as a fallback.
+
+**Full music section (`7`).** A dedicated screen adds a progress/seek bar
+(`[`/`]`), shuffle (`z`), repeat (`x`), a saved-playlist browser (`Enter` loads),
+and recently-played history — all cliamp-driven and polled off the UI thread.
+Set `music_screen = false` to omit the screen entirely.
+
+### `[kanban]`
+
+Per-column work-in-progress (WIP) limits. `0` means unlimited. A column whose
+task count exceeds its limit is highlighted red with a `⚠ n/limit` marker; moving
+a card into a full column warns but is never blocked.
+
+| Key | Type | Default | Notes |
+|---|---|---|---|
+| `wip_todo` | int | 0 | Max cards in **To Do** (0 = unlimited) |
+| `wip_doing` | int | 0 | Max cards in **Doing** (0 = unlimited) |
+| `wip_done` | int | 0 | Max cards in **Done** (0 = unlimited) |
 
 ### `[[preset]]`
 

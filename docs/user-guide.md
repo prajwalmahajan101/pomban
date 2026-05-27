@@ -80,6 +80,10 @@ the phase ends. Breaks and lunches are treated the same way (`on_break_*`).
   `next` subcommands works — set `[music].player` and the `on_*` subcommands to match.
 - If the player isn't installed the feature degrades silently — a note is written to
   `~/.local/state/pomodoro/music.log` and the timer keeps working.
+- Press **`7`** for the full **Music section**: pick a **playlist** (Enter) to start
+  playing it, or browse its **tracks** (right pane) and Enter one to play that song.
+  Now-playing has a seek bar (`[` / `]`), shuffle (`z`), repeat (`x`), and volume
+  (`+` / `-`) — all cliamp-driven. On a narrow terminal the panes stack vertically.
 
 ### The in-app music panel
 
@@ -299,8 +303,16 @@ changes with it: To Do/Doing offer **Focus** and **Move →**, while **Done** of
 | `n` | New card — adds to the **currently focused column** |
 | `Enter` / `s` | Start a focus session on the focused card |
 | `c` | Mark card done (moves to Done column) |
+| `e` | Edit card — title, tags, estimate, project, **due date**, **priority** |
+| `i` | **Card detail** — full notes + metadata (read view; `e` to edit, `p` to cycle priority) |
 | `d` / `x` | Delete card |
+| `/` | Filter the board by text or `#tag` (Esc clears) |
 | `1` | Switch to Dashboard |
+
+Cards sort by **priority** then **due date** (overdue renders red). Set per-column
+**WIP limits** in `[kanban]` to flag overloaded columns. In visual-select mode (`v`,
+then `Space` to pick), the move / done / delete keys and `g` (add tag) act on the
+whole selection.
 
 Starting a focus from Kanban automatically switches you to Dashboard so the timer is visible.
 

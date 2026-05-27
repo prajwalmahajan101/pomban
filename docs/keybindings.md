@@ -13,7 +13,8 @@ keys change depending on which panel is active.
 | Key | Action |
 |---|---|
 | `Tab` / `Shift+Tab` | Cycle focus between panels (Dashboard panes; Kanban columns) |
-| `1`–`6` | Jump directly to a section (Dashboard / Kanban / Stats / History / Projects / Sprints) |
+| highlighted letter | Each panel title shows one highlighted letter — press it to focus that panel (btop-style). Dashboard: **T·i·mer** = `i`, **T·a·sks** = `a`, **♪ M·u·sic** = `u` |
+| `1`–`7` | Jump directly to a section (Dashboard / Kanban / Stats / History / Projects / Sprints / Music) |
 
 ## Global (works everywhere)
 
@@ -35,6 +36,7 @@ keys change depending on which panel is active.
 | `4` | Switch to **History** |
 | `5` | Switch to **Projects** management screen |
 | `6` | Switch to **Sprints** management screen |
+| `7` | Switch to the full **Music** section |
 
 ## Dashboard
 
@@ -55,7 +57,7 @@ keys change depending on which panel is active.
 | `n` | Focus the "new task" input |
 | `d` / `x` | Delete selected task |
 | `c` | Mark selected task as **done** |
-| `e` | Edit selected task (title / tags / estimate / project) |
+| `e` | Edit selected task (title / tags / estimate / project / due / priority) |
 | `` ` `` (backtick) | Cycle the highlighted active-task chip (multi-task focus) |
 
 ### Music panel (only when `[music].enabled` and the panel is **focused**)
@@ -69,6 +71,34 @@ music here, not new-task / timer):
 | `n` / `p` | Next / previous track |
 | `+` / `-` | Volume up / down (dB step) |
 | `Shift+V` / `V` | Toggle the live visualizer |
+
+For the full player with seek, playlists, shuffle/repeat and history, press `7`.
+
+## Music section (`7`) — full player
+
+A dedicated screen driving the external **cliamp** player. Useful when
+`[music].enabled`; otherwise it shows a clear "enable in config" message. All
+controls are crash-safe and now-playing is polled off the UI thread.
+
+| Key | Action |
+|---|---|
+| `Space` | Play / pause |
+| `n` / `p` | Next / previous track |
+| `[` / `]` (or `←` / `→`) | Seek − / ＋ (step = `[music].seek_seconds`, default 5s) |
+| `+` / `-` | Volume up / down (dB step) |
+| `z` | Toggle **shuffle** |
+| `x` | Cycle **repeat** (off → all → one) |
+| `l` | Focus the **Play·l·ists** list — `Enter` loads + **plays** the highlighted playlist |
+| `k` | Focus the **Trac·k·s** list — `Enter` queues & **plays** that song |
+| `r` | Refresh now-playing + lists |
+
+The screen shows now-playing with a progress/seek bar and shuffle/repeat/volume
+flags, your saved **playlists** (Enter plays the whole playlist), and the **tracks**
+of the highlighted playlist (Enter queues & plays one song). Arrowing through
+playlists updates the Tracks pane. (`r` refreshes; it's not a transport key.)
+
+On a **narrow terminal** the two panes stack vertically (Textual breakpoints);
+they sit side-by-side when there's room.
 
 ## Kanban
 
@@ -107,16 +137,33 @@ Multiple aliases — use whichever your terminal doesn't intercept.
 | `Enter` / `s` | Start a focus session on focused card (To Do / Doing only) |
 | `c` | Mark focused card as **done** (To Do / Doing → Done) |
 | `o` | **Reopen** — move a Done card back to To Do (Done column only) |
-| `e` | Edit focused card (title / tags / estimate / project) |
+| `e` | Edit focused card (title / tags / estimate / project / **due date** / **priority**) |
+| `i` | Open the **card detail** view — full notes + metadata (`e` edit · `c` done · `p` cycle priority) |
 | `d` / `x` | Delete focused card |
 
 Per-column keymap (what the footer shows):
 
 | Column | Available |
 |---|---|
-| **To Do** | Focus · Move → · New · Edit · Delete |
-| **Doing** | Focus · Move ← · Move → · New · Edit · Delete |
-| **Done** | Move ← · **Reopen** · New · Edit · Delete |
+| **To Do** | Focus · Move → · New · Edit · Details · Delete |
+| **Doing** | Focus · Move ← · Move → · New · Edit · Details · Delete |
+| **Done** | Move ← · **Reopen** · New · Edit · Details · Delete |
+
+### Search, WIP limits & bulk actions
+
+| Key | Action |
+|---|---|
+| `/` | Filter the board by text or `#tag` (on top of project/sprint filters); `Esc` clears |
+| `v` | Toggle **visual select**, then `Space` to pick cards |
+| `Shift+H` / `Shift+L` | (visual) bulk-move all selected cards left / right |
+| `c` / `d` | (visual) bulk **complete** / **delete** the selection |
+| `g` | (visual) add a **tag** to all selected cards |
+| `s` / `Enter` | (visual) start a focus session on the whole selection |
+
+Cards sort within a column by **priority** (high first), then **due date**
+(soonest first), then manual order. Overdue due-dates render red. Columns can
+have **WIP limits** (`[kanban] wip_todo/wip_doing/wip_done`); a column over its
+limit turns red with `⚠ n/limit` and moving into it warns (but isn't blocked).
 
 ## Session-end modal (after focus completes with a task)
 
