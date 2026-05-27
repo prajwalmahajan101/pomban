@@ -20,35 +20,8 @@ from textual.widgets import Static
 from textual.worker import get_current_worker
 
 from pomodoro.core.colors import adapt
+from pomodoro.music_view import extract as _extract
 from pomodoro.widgets.sparkline import Sparkline
-
-
-def _extract(status: dict) -> dict:
-    """Pull display fields out of an unknown-shape status dict, defensively."""
-    # The track info may be nested under a few common keys.
-    track = status
-    for key in ("track", "now_playing", "current", "song"):
-        if isinstance(status.get(key), dict):
-            track = status[key]
-            break
-
-    def first(d: dict, *keys):
-        for k in keys:
-            v = d.get(k)
-            if v:
-                return v
-        return None
-
-    title = first(track, "title", "name", "track") or first(status, "title", "name")
-    artist = first(track, "artist", "author", "uploader") or first(status, "artist")
-    state = (first(status, "state", "status", "playback") or "").lower()
-    # Playing state: prefer an explicit boolean, fall back to a state string.
-    playing = status.get("playing")
-    if playing is None:
-        playing = state in ("playing", "play", "started")
-    volume = first(status, "volume", "vol", "volume_db")
-    return {"title": title, "artist": artist, "playing": bool(playing),
-            "volume": volume, "state": state}
 
 
 class MusicPanel(Vertical):
@@ -109,7 +82,7 @@ class MusicPanel(Vertical):
         meta = self.query_one("#np-meta", Static)
         if not status:
             title.update("[b]♪ Music[/]  [dim]— not running[/]")
-            meta.update("[dim]start cliamp, then press m / space[/]")
+            meta.update("[dim]start cliamp · press 7 for the full player[/]")
             return
         info = _extract(status)
         icon = "▶" if info["playing"] else "⏸"

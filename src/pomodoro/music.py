@@ -105,6 +105,51 @@ class MusicController:
         """Adjust volume by a signed dB delta (cliamp `volume <dB>`)."""
         self._run("volume", f"{db_delta:+g}")
 
+    def seek(self, seconds: float, *, relative: bool = False,
+             current: float | None = None) -> None:
+        """Seek playback. cliamp `seek <seconds>` is an *absolute* position, so a
+        relative skip is computed from ``current`` (the polled position). Clamped
+        at 0; the seconds are rounded to a whole number for the CLI."""
+        base = (current or 0.0) if relative else 0.0
+        target = max(0, int(round(base + seconds)))
+        self._run("seek", str(target))
+
+    def stop(self) -> None:
+        self._run("stop")
+
+    def shuffle(self, mode: str = "toggle") -> None:
+        """cliamp `shuffle [on|off|toggle]`."""
+        self._run("shuffle", mode)
+
+    def repeat(self, mode: str = "cycle") -> None:
+        """cliamp `repeat [off|all|one|cycle]`."""
+        self._run("repeat", mode)
+
+    def speed(self, ratio: float) -> None:
+        """cliamp `speed <ratio>` (clamped to the supported 0.25–2.0 range)."""
+        self._run("speed", f"{max(0.25, min(2.0, float(ratio))):g}")
+
+    def load_playlist(self, name: str, *, autoplay: bool = True) -> None:
+        """cliamp `load <name>` — load a saved playlist; start playback by default.
+
+        Plain `load` only loads (the player stays stopped); `--auto-play` is what
+        actually starts playback when you pick a playlist."""
+        if not name:
+            return
+        if autoplay:
+            self._run("load", name, "--auto-play")
+        else:
+            self._run("load", name)
+
+    def play(self) -> None:
+        """Resume playback (cliamp `play`)."""
+        self._run("play")
+
+    def play_track(self, path: str) -> None:
+        """Queue a specific file and start it (cliamp `queue <path> --auto-play`)."""
+        if path:
+            self._run("queue", path, "--auto-play")
+
     # ---- read-only status (for the in-app control panel) ----
     def status(self) -> dict | None:
         """Return the player's now-playing state as a dict, or None.
@@ -150,6 +195,66 @@ class MusicController:
         except (OSError, ValueError) as e:
             self._log(f"failed to start visstream: {e}")
             return None
+
+    def _run_read(self, *args: str, timeout: float = 0.7) -> str | None:
+        """Run a read-only subcommand and return stdout, or None on any failure.
+
+        Mirrors status(): disabled/which guard, short timeout, never raises — for
+        commands that report state (history, playlist list). Safe to poll off-thread.
+        """
+        if not self.cfg.enabled:
+            return None
+        player = self.cfg.player
+        if shutil.which(player) is None:
+            return None
+        try:
+            proc = subprocess.run([player, *args], capture_output=True,
+                                  text=True, timeout=timeout)
+        except (OSError, subprocess.SubprocessError):
+            return None
+        return proc.stdout or ""
+
+    def history(self, limit: int = 20) -> list[dict] | None:
+        """Recently-played tracks via `history --limit N --json`, or None."""
+        out = self._run_read("history", "--limit", str(int(limit)), "--json")
+        if out is None:
+            return None
+        out = out.strip()
+        if not out or not out.startswith(("[", "{")):
+            return None
+        try:
+            data = json.loads(out)
+        except json.JSONDecodeError:
+            return None
+        if isinstance(data, dict):
+            data = data.get("entries") or data.get("history") or data.get("items") or []
+        return [d for d in data if isinstance(d, dict)] if isinstance(data, list) else None
+
+    def playlists(self) -> list[str] | None:
+        """Saved playlist names via `playlist list` (tolerant text parse), or None."""
+        out = self._run_read("playlist", "list")
+        if out is None:
+            return None
+        from pomodoro.music_view import parse_playlists
+        return parse_playlists(out)
+
+    def playlist_tracks(self, name: str) -> list[dict] | None:
+        """Tracks in a saved playlist via `playlist show <name> --json`, or None.
+
+        Returns a list of ``{"path","title","artist"}`` dicts (cliamp's JSON shape)."""
+        if not name:
+            return None
+        out = self._run_read("playlist", "show", name, "--json")
+        if out is None:
+            return None
+        out = out.strip()
+        if not out or not out.startswith(("[", "{")):
+            return None
+        try:
+            data = json.loads(out)
+        except json.JSONDecodeError:
+            return None
+        return [d for d in data if isinstance(d, dict)] if isinstance(data, list) else None
 
     def _run(self, subcmd: str, *args: str) -> None:
         if not self.cfg.enabled:
