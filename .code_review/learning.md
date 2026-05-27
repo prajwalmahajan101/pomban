@@ -26,5 +26,11 @@ _Last updated: 2026-05-25_
 
 - **Trusting `except Exception: pass` as control flow** — observed across `app.py`, `dashboard.py`, `kanban.py`, `stats.py`. Recommended direction: narrow the caught type, or route to the existing `$XDG_STATE_HOME/pomodoro/*.log` sink used by `notifications`/`music`/`plugins`.
 - **Keymap defined in multiple places without a single source of truth** — per-screen `BINDINGS` plus a hand-written help string plus docs. Recommended direction: a central keymap that screens and the help overlay both consume; assert parity in a test.
-- **Cross-screen coupling by string-named methods** — duck-typed refresh hooks. Recommended direction: define a `Refreshable` protocol (or Textual messages) so the contract is explicit and type-checked.
+- **Cross-screen coupling by string-named methods** — duck-typed refresh hooks. Recommended direction: define a `Refreshable` protocol (or Textual messages) so the contract is explicit and type-checked. (Largely addressed: `AppScreen` now defines typed `refresh_view`/`refresh_timer`.)
+- **Storing a model on a `Screen` as `self.task` / `self._task`** — both collide with Textual internals (`Screen.task` is a read-only property; `MessagePump._task` is the message-pump asyncio task, which clobbers your value once the screen runs). Symptom: `AttributeError: property 'task' … has no setter`, or a stray `_asyncio.Task` where your model should be. Use a non-reserved name like `task_data` (the convention `TaskCard` already uses). This had silently broken `EditTaskModal` (only caught because no test opened it via the app).
+
+## New module structure (this branch)
+
+- **Pure helpers split out of the app god-object** — `core/task_input.py` (`parse_task_input`), `music_view.py` (player-status extraction + now-playing/progress rendering, shared by the dashboard panel and the full screen), `widgets/panel.py` (`panel_title` btop-style hotkey-letter titles). Each is import-light and unit-testable without Textual.
+- **External-player control stays fire-and-forget** — `MusicController` gained `seek/stop/shuffle/repeat/speed` (fire-and-forget) and `history/playlists` (read, off-thread, `None` on any failure), all preserving the "never raise, log one line" contract. The full `MusicScreen` polls via `asyncio.to_thread` and escapes every player string.
 </content>
