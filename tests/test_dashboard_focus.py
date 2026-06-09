@@ -2,11 +2,11 @@ import tempfile
 from pathlib import Path
 
 import pytest
+from textual.widgets import ListView
 
 from pomodoro.app import PomodoroApp
 from pomodoro.core.db import DB
 from pomodoro.screens.dashboard import DashboardScreen
-from textual.widgets import ListView
 
 
 @pytest.mark.asyncio

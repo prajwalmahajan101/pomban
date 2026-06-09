@@ -9,9 +9,11 @@ before it reaches Rich markup, so a slow, missing, or hostile player never block
 or corrupts the render. Degrades to a clear message when music is disabled or
 cliamp isn't running.
 """
+
 from __future__ import annotations
 
 import asyncio
+import contextlib
 
 from rich.markup import escape
 from textual import work
@@ -21,7 +23,10 @@ from textual.containers import Horizontal, Vertical
 from textual.widgets import Footer, Header, ListItem, ListView, Static
 
 from pomodoro.music_view import (
-    extract, flags_line, now_playing_lines, render_progress_bar,
+    extract,
+    flags_line,
+    now_playing_lines,
+    render_progress_bar,
 )
 from pomodoro.screens.base import AppScreen
 from pomodoro.widgets.panel import panel_title
@@ -102,8 +107,9 @@ class MusicScreen(AppScreen):
             yield Static("", id="np-now")
             yield Static("", id="np-progress")
             yield Static("", id="np-flags")
-            yield Static("[dim]↵ playlist = play · ↵ track = queue & play · space = pause[/]",
-                         id="np-hint")
+            yield Static(
+                "[dim]↵ playlist = play · ↵ track = queue & play · space = pause[/]", id="np-hint"
+            )
         with Horizontal(id="browse"):
             with Vertical(id="pl-pane"):
                 yield Static(panel_title("Playlists", "l"), classes="pane-title")
@@ -157,8 +163,11 @@ class MusicScreen(AppScreen):
             width = max(10, min(60, self.size.width - 16))
         except Exception:
             width = 30
-        prog.update(render_progress_bar(info["position"], info["duration"],
-                                        width=width, color="bright_cyan"))
+        prog.update(
+            render_progress_bar(
+                info["position"], info["duration"], width=width, color="bright_cyan"
+            )
+        )
         flags.update(f"[dim]{flags_line(info)}[/]")
 
     def _render_disabled(self) -> None:
@@ -225,10 +234,8 @@ class MusicScreen(AppScreen):
         self.refresh_now_playing()
 
     def _notify(self, msg: str) -> None:
-        try:
+        with contextlib.suppress(Exception):
             self.app.notify(escape(msg), timeout=2)
-        except Exception:
-            pass
 
     # ---- transport actions (controller calls are crash-safe) ----
     def action_toggle(self) -> None:

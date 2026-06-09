@@ -9,6 +9,7 @@ Splits free text into a title plus optional metadata tokens:
 No I/O: the app layer resolves project/sprint names to ids and applies the
 active-filter defaults. Unit-testable in isolation.
 """
+
 from __future__ import annotations
 
 from dataclasses import dataclass, field
@@ -48,5 +49,10 @@ def parse_task_input(text: str) -> ParsedTask:
         else:
             title_words.append(w)
     title = " ".join(title_words) or text
-    return ParsedTask(title=title, tags=tags, project_name=project_name,
-                      sprint_name=sprint_name, estimate=estimate)
+    return ParsedTask(
+        title=title,
+        tags=tags,
+        project_name=project_name,
+        sprint_name=sprint_name,
+        estimate=estimate,
+    )

@@ -6,6 +6,7 @@ persistence, and the project label/color lookups. UI-free — the app wraps the
 mutators with a screen refresh and keeps thin delegating accessors so screens and
 tests still use ``app.project_filter`` / ``app.active_sprint_id`` unchanged.
 """
+
 from __future__ import annotations
 
 from pomodoro.core.filters import ProjectFilter

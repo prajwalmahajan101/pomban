@@ -5,6 +5,7 @@ Dismisses with:
   >0 → sprint id
   None → cancelled
 """
+
 from __future__ import annotations
 
 from textual.app import ComposeResult
@@ -46,13 +47,17 @@ class SprintPickerModal(ModalScreen[int | None]):
                 yield Static("[b]Filter by sprint[/]  [dim](enter to select, esc to cancel)[/]")
                 items: list[_PickItem] = [_PickItem(-1, "[dim] All sprints (no filter) [/]")]
                 if not self.sprints:
-                    items.append(_PickItem(-1, "[dim italic] no sprints yet — press 6 to create one [/]"))
+                    items.append(
+                        _PickItem(-1, "[dim italic] no sprints yet — press 6 to create one [/]")
+                    )
                 for sp in self.sprints:
                     marker = "▶" if sp.status == "active" else "·"
-                    items.append(_PickItem(
-                        sp.id,
-                        f"{marker} [b]{sp.name}[/]  [dim]{sp.start_date} → {sp.end_date}  ({sp.status})[/]"
-                    ))
+                    items.append(
+                        _PickItem(
+                            sp.id,
+                            f"{marker} [b]{sp.name}[/]  [dim]{sp.start_date} → {sp.end_date}  ({sp.status})[/]",
+                        )
+                    )
                 yield ListView(*items)
 
     def action_pick(self) -> None:

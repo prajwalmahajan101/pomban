@@ -9,6 +9,7 @@ Two concerns:
   ``bright_*`` names to their 16-color base on terminals that don't advertise 256
   colors.
 """
+
 from __future__ import annotations
 
 import os
@@ -23,9 +24,14 @@ def stable_index(s: str, n: int) -> int:
 
 
 _BRIGHT_FALLBACK = {
-    "bright_red": "red", "bright_green": "green", "bright_yellow": "yellow",
-    "bright_blue": "blue", "bright_magenta": "magenta", "bright_cyan": "cyan",
-    "bright_black": "bright_black", "bright_white": "white",
+    "bright_red": "red",
+    "bright_green": "green",
+    "bright_yellow": "yellow",
+    "bright_blue": "blue",
+    "bright_magenta": "magenta",
+    "bright_cyan": "cyan",
+    "bright_black": "bright_black",
+    "bright_white": "white",
 }
 
 

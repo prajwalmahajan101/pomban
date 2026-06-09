@@ -19,8 +19,9 @@ run: ## Launch the Pomodoro TUI
 test: ## Run the test suite
 	$(PYTHON) -m pytest -q
 
-lint: ## Byte-compile all sources to catch syntax errors
-	$(PYTHON) -m compileall -q src tests
+lint: ## Lint sources with ruff (check + format check)
+	$(PYTHON) -m ruff check src tests
+	$(PYTHON) -m ruff format --check src tests
 
 clean: ## Remove caches and build artifacts
 	rm -rf build dist *.egg-info .pytest_cache

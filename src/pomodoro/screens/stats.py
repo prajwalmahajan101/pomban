@@ -4,9 +4,9 @@ from rich.markup import escape
 from textual.app import ComposeResult
 from textual.binding import Binding
 from textual.containers import Vertical, VerticalScroll
-from pomodoro.screens.base import AppScreen
 from textual.widgets import Footer, Header, Static
 
+from pomodoro.screens.base import AppScreen
 from pomodoro.widgets.bar_chart import BarChart, VerticalBarChart
 from pomodoro.widgets.heatmap import Heatmap
 from pomodoro.widgets.sparkline import Sparkline
@@ -51,13 +51,19 @@ class StatsScreen(AppScreen):
         yield Header(show_clock=True)
         with VerticalScroll():
             with Vertical(classes="section"):
-                yield Static("[b]View: daily[/]  [dim](d/w/m to switch)[/]", id="view-title", classes="section-title")
+                yield Static(
+                    "[b]View: daily[/]  [dim](d/w/m to switch)[/]",
+                    id="view-title",
+                    classes="section-title",
+                )
                 yield Static("", id="filter-label")
             with Vertical(classes="section"):
                 yield Static("[b]Focus minutes per bucket[/]", classes="section-title")
                 yield VerticalBarChart(id="bucket-bars")
             with Vertical(classes="section"):
-                yield Static("[b]Estimate accuracy trend (1.0 = on target)[/]", classes="section-title")
+                yield Static(
+                    "[b]Estimate accuracy trend (1.0 = on target)[/]", classes="section-title"
+                )
                 yield Sparkline(id="est-spark")
                 yield Static("", id="est-detail")
             with Vertical(classes="section"):
@@ -108,14 +114,19 @@ class StatsScreen(AppScreen):
                 f"  [reverse {color}] {escape(active_label)} [/]  [dim](press P to change filter)[/]"
             )
         else:
-            self.query_one("#filter-label", Static).update("  [dim]all projects (press P to filter)[/]")
+            self.query_one("#filter-label", Static).update(
+                "  [dim]all projects (press P to filter)[/]"
+            )
         # Bucket chart
         n_buckets = {"day": 14, "week": 12, "month": 12}[self.granularity]
-        buckets = db.sessions_by_bucket(self.granularity, n_buckets=n_buckets,
-                                        project_id=active_pid)
+        buckets = db.sessions_by_bucket(
+            self.granularity, n_buckets=n_buckets, project_id=active_pid
+        )
         bar_data = [(b[0], b[1]) for b in buckets]
         bar_color = self.app.active_project_color() if active_pid else "cyan"
-        self.query_one("#bucket-bars", VerticalBarChart).set_data(bar_data, height=6, color=bar_color)
+        self.query_one("#bucket-bars", VerticalBarChart).set_data(
+            bar_data, height=6, color=bar_color
+        )
         # Estimate sparkline
         ratios = [b[2] for b in buckets]
         self.query_one("#est-spark", Sparkline).set_values(ratios, color="green")
@@ -142,18 +153,20 @@ class StatsScreen(AppScreen):
                 bar_data, width=30, colors=colors, value_suffix="m"
             )
         elif active_pid:
-            self.query_one("#by-project", BarChart).update("[dim]filtered to single project — see drill-down below[/]")
+            self.query_one("#by-project", BarChart).update(
+                "[dim]filtered to single project — see drill-down below[/]"
+            )
         else:
             self.query_one("#by-project", BarChart).update("[dim]no completed sessions yet[/]")
         # Project drill-down
         if active_pid:
             an = db.project_analytics(active_pid)
-            dow_data = list(zip(_DOW, an["dow_minutes"]))
-            ratio_str = (f"{an['estimate_ratio']:.2f}"
-                         if an["estimate_ratio"] > 0 else "—")
+            dow_data = list(zip(_DOW, an["dow_minutes"], strict=False))
+            ratio_str = f"{an['estimate_ratio']:.2f}" if an["estimate_ratio"] > 0 else "—"
             idle_warn = ""
             if an["last_session"]:
                 from datetime import date as _date
+
                 try:
                     last = _date.fromisoformat(an["last_session"])
                     delta = (_date.today() - last).days
@@ -168,9 +181,7 @@ class StatsScreen(AppScreen):
                 f"  Avg per day:  {_fmt_hours(an['avg_per_active_day_minutes'])}\n"
                 f"  Estimate ratio: {ratio_str}  "
                 f"({an['actual_pomodoros']} 🍅 actual / {an['estimated_pomodoros']} estimated)\n"
-                f"  Day-of-week minutes: " +
-                "  ".join(f"{d} {m}" for d, m in dow_data) +
-                idle_warn
+                f"  Day-of-week minutes: " + "  ".join(f"{d} {m}" for d, m in dow_data) + idle_warn
             )
             self.query_one("#project-drill", Static).update(drill)
         else:
@@ -187,9 +198,13 @@ class StatsScreen(AppScreen):
                     [float(x) for x in bd["remaining_series"]], color="bright_yellow"
                 )
                 pace = bd["pace"]
-                pace_str = (f"[green]+{pace} 🍅 ahead[/]" if pace > 0
-                            else f"[red]{pace} 🍅 behind[/]" if pace < 0
-                            else "[dim]on pace[/]")
+                pace_str = (
+                    f"[green]+{pace} 🍅 ahead[/]"
+                    if pace > 0
+                    else f"[red]{pace} 🍅 behind[/]"
+                    if pace < 0
+                    else "[dim]on pace[/]"
+                )
                 detail = (
                     f"  Sprint: [b]{sp.name}[/] · {sp.start_date} → {sp.end_date}\n"
                     f"  Target: {bd['target']} 🍅 · Done: {bd['completed']} · "
@@ -206,7 +221,9 @@ class StatsScreen(AppScreen):
         # Top tasks
         top = db.top_tasks(5)
         if top:
-            top_text = "\n".join(f"  {i+1}. {title} — {_fmt_hours(m)}" for i, (title, m) in enumerate(top))
+            top_text = "\n".join(
+                f"  {i+1}. {title} — {_fmt_hours(m)}" for i, (title, m) in enumerate(top)
+            )
         else:
             top_text = "[dim]no completed focus sessions yet[/]"
         self.query_one("#top-tasks", Static).update(top_text)

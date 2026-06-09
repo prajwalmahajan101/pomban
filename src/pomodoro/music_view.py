@@ -7,6 +7,7 @@ defensive parsing and the markup-safety: every player-supplied string is escaped
 before it goes into Rich markup, and every color goes through ``adapt`` so it
 degrades under NO_COLOR / low-color terminals.
 """
+
 from __future__ import annotations
 
 import re
@@ -52,19 +53,29 @@ def extract(status: dict) -> dict:
     if playing is None:
         playing = state in ("playing", "play", "started")
     volume = first(status, "volume", "vol", "volume_db")
-    position = _as_float(first(track, "position", "elapsed", "time")
-                         or first(status, "position", "elapsed", "time"))
-    duration = _as_float(first(track, "duration", "length", "total")
-                         or first(status, "duration", "length", "total"))
+    position = _as_float(
+        first(track, "position", "elapsed", "time") or first(status, "position", "elapsed", "time")
+    )
+    duration = _as_float(
+        first(track, "duration", "length", "total") or first(status, "duration", "length", "total")
+    )
     shuffle = bool(status.get("shuffle"))
     repeat = str(first(status, "repeat", "repeat_mode", "loop") or "").lower()
     speed = _as_float(first(status, "speed", "rate"))
     index = first(status, "index", "track_index", "queue_index")
     return {
-        "title": title, "artist": artist, "album": album,
-        "playing": bool(playing), "state": state, "volume": volume,
-        "position": position, "duration": duration,
-        "shuffle": shuffle, "repeat": repeat, "speed": speed, "index": index,
+        "title": title,
+        "artist": artist,
+        "album": album,
+        "playing": bool(playing),
+        "state": state,
+        "volume": volume,
+        "position": position,
+        "duration": duration,
+        "shuffle": shuffle,
+        "repeat": repeat,
+        "speed": speed,
+        "index": index,
     }
 
 
@@ -152,7 +163,7 @@ def parse_playlists(text: str) -> list[str]:
             continue
         for prefix in ("• ", "* ", "- "):
             if line.startswith(prefix):
-                line = line[len(prefix):].strip()
+                line = line[len(prefix) :].strip()
         line = _NUM_PREFIX.sub("", line)
         line = _TRACK_COUNT_SUFFIX.sub("", line)  # "Name   12 tracks" → "Name"
         cut = line.rfind(" (")

@@ -1,4 +1,5 @@
 """Markdown export for daily/weekly review. Pure function on DB data."""
+
 from __future__ import annotations
 
 from datetime import date, timedelta
@@ -16,9 +17,13 @@ def export_markdown(db: DB, days: int = 7) -> str:
     start = end - timedelta(days=days - 1)
     daily = db.daily_focus_minutes(days)
     total_minutes = sum(m for _, m in daily)
-    total_sessions = sum(1 for r in db.session_history(10_000)
-                         if r["kind"] == "focus" and r["completed"]
-                         and start.isoformat() <= r["started_at"][:10] <= end.isoformat())
+    total_sessions = sum(
+        1
+        for r in db.session_history(10_000)
+        if r["kind"] == "focus"
+        and r["completed"]
+        and start.isoformat() <= r["started_at"][:10] <= end.isoformat()
+    )
     streak = db.stats_today()["streak"]
     top = db.top_tasks(10)
 

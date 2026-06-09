@@ -1,8 +1,9 @@
 """Tests for Phase O: sprints, !sprint inline syntax, activate-only-one invariant, burndown."""
+
 from __future__ import annotations
 
 import tempfile
-from datetime import date, timedelta
+from datetime import date
 from pathlib import Path
 
 import pytest
@@ -45,7 +46,7 @@ def test_bang_sprint_inline_parser_auto_creates_shell():
     assert t.sprint_id is not None
     sp = d.get_sprint(t.sprint_id)
     assert sp.name == "v2.0"
-    assert sp.status == "planned"   # auto-created shell, not active yet
+    assert sp.status == "planned"  # auto-created shell, not active yet
     # 14-day default window
     end = date.fromisoformat(sp.end_date)
     start = date.fromisoformat(sp.start_date)

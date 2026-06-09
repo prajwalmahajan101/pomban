@@ -2,8 +2,9 @@ from __future__ import annotations
 
 from textual.app import ComposeResult
 from textual.binding import Binding
-from pomodoro.screens.base import AppScreen
 from textual.widgets import DataTable, Footer, Header
+
+from pomodoro.screens.base import AppScreen
 
 
 def _dur(secs: int) -> str:
@@ -41,7 +42,9 @@ class HistoryScreen(AppScreen):
             table.clear(columns=True)
         except TypeError:
             table.clear()
-        table.add_columns("When", "Kind", "Project(s)", "Planned", "Actual", "Done", "Interr.", "Task(s)")
+        table.add_columns(
+            "When", "Kind", "Project(s)", "Planned", "Actual", "Done", "Interr.", "Task(s)"
+        )
         active_pid = self.app.project_filter.scoped_project_id
         for row in self.app.db.session_history(100, project_id=active_pid):
             table.add_row(

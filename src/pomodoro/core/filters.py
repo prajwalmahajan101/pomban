@@ -6,6 +6,7 @@ other int meaning a specific project. That sentinel leaked into the app and
 five screens; this type makes the three states explicit and owns the
 translation to the DB filter and to/from persisted config-kv strings.
 """
+
 from __future__ import annotations
 
 from dataclasses import dataclass
@@ -21,15 +22,15 @@ class ProjectFilter:
 
     # ---- constructors ----
     @classmethod
-    def all(cls) -> "ProjectFilter":
+    def all(cls) -> ProjectFilter:
         return cls("all", None)
 
     @classmethod
-    def inbox(cls) -> "ProjectFilter":
+    def inbox(cls) -> ProjectFilter:
         return cls("inbox", None)
 
     @classmethod
-    def project(cls, project_id: int) -> "ProjectFilter":
+    def project(cls, project_id: int) -> ProjectFilter:
         return cls("project", int(project_id))
 
     # ---- predicates ----
@@ -62,6 +63,7 @@ class ProjectFilter:
         and the int id for a specific project.
         """
         from pomodoro.core.db import _NO
+
         if self.mode == "all":
             return _NO
         if self.mode == "inbox":
@@ -78,7 +80,7 @@ class ProjectFilter:
         return str(self.project_id)
 
     @classmethod
-    def from_kv(cls, value: str | None) -> "ProjectFilter":
+    def from_kv(cls, value: str | None) -> ProjectFilter:
         """Decode a persisted value. Tolerates the legacy ``-2`` = Inbox code."""
         if not value:
             return cls.all()

@@ -8,9 +8,8 @@ Returns a dict describing the user's choice:
   {"action": "extend", "seconds": int}  — add time, stay in current phase
   {"action": "lunch"}                   — take a lunch break (LONG_PAUSE)
 """
-from __future__ import annotations
 
-from typing import Optional
+from __future__ import annotations
 
 from rich.markup import escape
 from textual.app import ComposeResult
@@ -50,9 +49,14 @@ class SessionEndScreen(ModalScreen[dict]):
         Binding("escape", "cancel", "Close", show=False),
     ]
 
-    def __init__(self, completed_phase: Phase, task_title: Optional[str],
-                 suggest_lunch: bool = False, lunch_minutes: int = 45,
-                 multi_tasks: Optional[list[Task]] = None) -> None:
+    def __init__(
+        self,
+        completed_phase: Phase,
+        task_title: str | None,
+        suggest_lunch: bool = False,
+        lunch_minutes: int = 45,
+        multi_tasks: list[Task] | None = None,
+    ) -> None:
         super().__init__()
         self.completed_phase = completed_phase
         self.task_title = task_title
@@ -100,11 +104,10 @@ class SessionEndScreen(ModalScreen[dict]):
             )
         if self.suggest_lunch:
             body += f"\n  [b]l[/]  Take lunch ({self.lunch_minutes}m)"
-        with Center():
-            with Vertical():
-                yield Static(title, classes="title")
-                yield Static(body, classes="body")
-                yield Static("[dim]esc closes — phase will stay paused[/]", classes="hint")
+        with Center(), Vertical():
+            yield Static(title, classes="title")
+            yield Static(body, classes="body")
+            yield Static("[dim]esc closes — phase will stay paused[/]", classes="hint")
 
     def action_complete(self) -> None:
         if self.completed_phase == Phase.FOCUS and self.multi_tasks:
@@ -153,6 +156,7 @@ class _MultiItem(ListItem):
 
 class MultiCompleteModal(ModalScreen[list]):
     """Pick which of a multi-task session's tasks to mark done. Returns a list of ids."""
+
     DEFAULT_CSS = """
     MultiCompleteModal { align: center middle; }
     MultiCompleteModal > Center > Vertical {
@@ -176,11 +180,12 @@ class MultiCompleteModal(ModalScreen[list]):
         self.tasks = tasks
 
     def compose(self) -> ComposeResult:
-        with Center():
-            with Vertical():
-                yield Static("[b]Which tasks did you finish?[/] "
-                             "[dim](space toggles · y=all · n=none · enter confirms)[/]")
-                yield ListView(*[_MultiItem(t, checked=True) for t in self.tasks])
+        with Center(), Vertical():
+            yield Static(
+                "[b]Which tasks did you finish?[/] "
+                "[dim](space toggles · y=all · n=none · enter confirms)[/]"
+            )
+            yield ListView(*[_MultiItem(t, checked=True) for t in self.tasks])
 
     def action_toggle(self) -> None:
         lv = self.query_one(ListView)

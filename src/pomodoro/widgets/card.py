@@ -3,7 +3,6 @@ from __future__ import annotations
 from datetime import date
 
 from rich.markup import escape
-from textual.widget import Widget
 from textual.widgets import Static
 
 from pomodoro.core.colors import adapt, stable_index
@@ -78,6 +77,7 @@ def render_due(due_date: str, today: str | None = None) -> str:
 def _no_color() -> bool:
     # local import keeps the module's import surface unchanged
     from pomodoro.core.colors import no_color
+
     return no_color()
 
 
@@ -98,10 +98,14 @@ class TaskCard(Static):
     }
     """
 
-    def __init__(self, task: Task, project_name: str | None = None,
-                 project_color: str | None = None,
-                 sprint_name: str | None = None,
-                 actual_pomodoros: int = 0) -> None:
+    def __init__(
+        self,
+        task: Task,
+        project_name: str | None = None,
+        project_color: str | None = None,
+        sprint_name: str | None = None,
+        actual_pomodoros: int = 0,
+    ) -> None:
         super().__init__()
         self.task_data = task
         self.project_name = project_name

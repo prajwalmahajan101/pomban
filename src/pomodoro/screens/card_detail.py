@@ -6,6 +6,7 @@ sprint, priority, due date, and pomodoro progress. It doesn't edit in place —
 ``EditTaskModal``; ``c`` completes; ``p`` cycles priority. Dismisses with a small
 action dict (or None) the kanban screen acts on.
 """
+
 from __future__ import annotations
 
 from typing import Optional
@@ -19,8 +20,13 @@ from textual.widgets import Static
 
 from pomodoro.core.models import Task
 from pomodoro.widgets.card import (
-    PRIORITY_LABELS, STATUS_MARK, render_chips, render_due, render_priority,
-    render_project_badge, render_sprint_chip,
+    PRIORITY_LABELS,
+    STATUS_MARK,
+    render_chips,
+    render_due,
+    render_priority,
+    render_project_badge,
+    render_sprint_chip,
 )
 
 
@@ -45,9 +51,15 @@ class CardDetailScreen(ModalScreen[Optional[dict]]):
         Binding("p", "cycle_priority", "Priority"),
     ]
 
-    def __init__(self, task: Task, *, project_name: str | None = None,
-                 project_color: str | None = None, sprint_name: str | None = None,
-                 actual_pomodoros: int = 0) -> None:
+    def __init__(
+        self,
+        task: Task,
+        *,
+        project_name: str | None = None,
+        project_color: str | None = None,
+        sprint_name: str | None = None,
+        actual_pomodoros: int = 0,
+    ) -> None:
         super().__init__()
         self.task_data = task
         self.project_name = project_name
@@ -57,15 +69,14 @@ class CardDetailScreen(ModalScreen[Optional[dict]]):
 
     def compose(self) -> ComposeResult:
         t = self.task_data
-        with Center():
-            with Vertical():
-                yield Static(self._header())
-                yield Static(self._meta())
-                yield Static("Notes", classes="dlabel")
-                with VerticalScroll(classes="detail-notes"):
-                    notes = (t.notes or "").strip()
-                    yield Static(escape(notes) if notes else "[dim]No notes — press e to edit[/]")
-                yield Static("[dim]e edit · c done · p priority · esc close[/]", classes="dlabel")
+        with Center(), Vertical():
+            yield Static(self._header())
+            yield Static(self._meta())
+            yield Static("Notes", classes="dlabel")
+            with VerticalScroll(classes="detail-notes"):
+                notes = (t.notes or "").strip()
+                yield Static(escape(notes) if notes else "[dim]No notes — press e to edit[/]")
+            yield Static("[dim]e edit · c done · p priority · esc close[/]", classes="dlabel")
 
     def _header(self) -> str:
         t = self.task_data

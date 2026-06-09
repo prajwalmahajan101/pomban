@@ -9,6 +9,7 @@ Two jobs:
    path (which fires from the 0.25 s tick callback). Caching collapses that to at
    most one query per day, keeping I/O out of the hot path.
 """
+
 from __future__ import annotations
 
 from datetime import date

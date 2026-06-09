@@ -34,14 +34,13 @@ class ResumePrompt(ModalScreen[bool]):
         self.remaining_seconds = remaining_seconds
 
     def compose(self) -> ComposeResult:
-        body = f"[b]Resume previous focus session?[/]\n\n"
+        body = "[b]Resume previous focus session?[/]\n\n"
         if self.task_title:
             body += f"  task: [b]{self.task_title}[/]\n"
         body += f"  remaining: [b]{_fmt(self.remaining_seconds)}[/]\n\n"
         body += "  [b]y[/] resume — [b]n[/] discard (logs as incomplete)"
-        with Center():
-            with Vertical():
-                yield Static(body)
+        with Center(), Vertical():
+            yield Static(body)
 
     def action_resume(self) -> None:
         self.dismiss(True)

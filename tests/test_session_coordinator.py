@@ -52,8 +52,9 @@ def test_should_suggest_lunch_respects_phase_and_window():
     with tempfile.TemporaryDirectory() as td:
         coord, db, eng = _coord(td)
         cfg = Config()
-        cfg.breaks = BreaksSection(lunch_minutes=45, lunch_window_start="00:00",
-                                   lunch_window_end="23:59")
+        cfg.breaks = BreaksSection(
+            lunch_minutes=45, lunch_window_start="00:00", lunch_window_end="23:59"
+        )
         assert coord.should_suggest_lunch(Phase.FOCUS, cfg) is True
         assert coord.should_suggest_lunch(Phase.SHORT_BREAK, cfg) is False
         assert coord.should_suggest_lunch(Phase.FOCUS, Config()) is False  # no window set

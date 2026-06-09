@@ -1,10 +1,9 @@
 """Tests for Phase I5: LONG_PAUSE phase and lunch break action."""
+
 from __future__ import annotations
 
 import tempfile
 from pathlib import Path
-
-import pytest
 
 from pomodoro.app import PomodoroApp
 from pomodoro.core.config import BreaksSection, Config

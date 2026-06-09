@@ -47,17 +47,20 @@ def test_delete_task_with_sessions_cascades(db):
     t = db.add_task("Tracked task")
     sid = db.start_session("focus", 1500, [t.id])
     db.end_session(sid, actual_seconds=1500, completed=True)
-    assert db.conn.execute(
-        "SELECT COUNT(*) FROM session_tasks WHERE task_id=?", (t.id,)
-    ).fetchone()[0] == 1
+    assert (
+        db.conn.execute("SELECT COUNT(*) FROM session_tasks WHERE task_id=?", (t.id,)).fetchone()[0]
+        == 1
+    )
     db.delete_task(t.id)  # must not raise
-    assert db.conn.execute(
-        "SELECT COUNT(*) FROM session_tasks WHERE task_id=?", (t.id,)
-    ).fetchone()[0] == 0
+    assert (
+        db.conn.execute("SELECT COUNT(*) FROM session_tasks WHERE task_id=?", (t.id,)).fetchone()[0]
+        == 0
+    )
 
 
 def test_schema_is_current(db):
     from pomodoro.core.db import SCHEMA_VERSION
+
     assert db.conn.execute("PRAGMA user_version").fetchone()[0] == SCHEMA_VERSION
 
 
@@ -73,6 +76,7 @@ def test_migration_v8_drops_stale_kind_check(tmp_path):
     # Reproduce a pre-existing DB: sessions.kind has the old CHECK that forbids
     # 'long_pause', plus the FK children, stamped at user_version 7.
     import sqlite3
+
     p = tmp_path / "old.db"
     raw = sqlite3.connect(str(p))
     raw.executescript(
@@ -109,14 +113,16 @@ def test_migration_v8_drops_stale_kind_check(tmp_path):
     db = DB(p)  # runs migration v8
     try:
         from pomodoro.core.db import SCHEMA_VERSION
+
         assert db.conn.execute("PRAGMA user_version").fetchone()[0] == SCHEMA_VERSION
         # Existing data survived the rebuild (no cascade wipe).
         assert db.conn.execute("SELECT COUNT(*) FROM sessions").fetchone()[0] == 1
         assert db.conn.execute("SELECT COUNT(*) FROM session_tasks").fetchone()[0] == 1
         # The previously-forbidden kind now inserts cleanly.
         sid = db.start_session("long_pause", 2700, [])
-        assert db.conn.execute(
-            "SELECT kind FROM sessions WHERE id=?", (sid,)
-        ).fetchone()[0] == "long_pause"
+        assert (
+            db.conn.execute("SELECT kind FROM sessions WHERE id=?", (sid,)).fetchone()[0]
+            == "long_pause"
+        )
     finally:
         db.close()

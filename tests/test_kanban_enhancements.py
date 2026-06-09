@@ -1,4 +1,5 @@
 """Tests for the kanban enhancements: due/priority schema, card render, sort, search."""
+
 import tempfile
 from pathlib import Path
 
@@ -17,6 +18,7 @@ def _db(td):
 
 
 # ---------------- migration v9: due_date + priority ----------------
+
 
 def test_migration_v9_adds_columns_with_defaults():
     with tempfile.TemporaryDirectory() as td:
@@ -62,6 +64,7 @@ def test_migration_idempotent_on_reopen():
 
 # ---------------- card render: priority + due ----------------
 
+
 def test_render_priority_glyph():
     assert render_priority(0) == ""
     out = render_priority(3)
@@ -89,6 +92,7 @@ def test_render_due_no_color(monkeypatch):
 
 # ---------------- column sort ----------------
 
+
 def test_sort_key_priority_then_due_then_position():
     tasks = [
         Task(id=1, title="a", priority=0, position=0),
@@ -103,10 +107,12 @@ def test_sort_key_priority_then_due_then_position():
 
 # ---------------- card detail view + editor due/priority ----------------
 
+
 @pytest.mark.asyncio
 async def test_kanban_open_detail_then_edit():
     from pomodoro.screens.card_detail import CardDetailScreen
     from pomodoro.screens.edit_task import EditTaskModal
+
     with tempfile.TemporaryDirectory() as td:
         db = DB(Path(td) / "k.db")
         db.add_task("Read a book")
@@ -131,16 +137,24 @@ async def test_on_task_edited_persists_due_and_priority():
         t = db.add_task("Edit")
         app = PomodoroApp(db=db, fast=True, config=Config())
         async with app.run_test():
-            app._on_task_edited(t.id, {
-                "title": "Edit", "tags": "", "estimate": 0, "project": "",
-                "due_date": "2026-06-02", "priority": 2,
-            })
+            app._on_task_edited(
+                t.id,
+                {
+                    "title": "Edit",
+                    "tags": "",
+                    "estimate": 0,
+                    "project": "",
+                    "due_date": "2026-06-02",
+                    "priority": 2,
+                },
+            )
             got = db.get_task(t.id)
             assert got.due_date == "2026-06-02" and got.priority == 2
         db.close()
 
 
 # ---------------- search / filter ----------------
+
 
 def test_matches_query():
     t = Task(id=1, title="Write the Report", tags="urgent,docs")
@@ -154,6 +168,7 @@ def test_matches_query():
 
 def test_kanban_section_loads_and_ignores_unknown(tmp_path):
     from pomodoro.core.config import load
+
     p = tmp_path / "c.toml"
     p.write_text("[kanban]\nwip_doing = 3\nbogus = 1\n")
     cfg = load(p)
@@ -180,9 +195,11 @@ async def test_kanban_search_filters_column_tasks():
 
 # ---------------- WIP limits ----------------
 
+
 @pytest.mark.asyncio
 async def test_kanban_wip_overflow_flags_column():
     from pomodoro.core.config import KanbanSection
+
     with tempfile.TemporaryDirectory() as td:
         db = DB(Path(td) / "k.db")
         db.add_task("a")
@@ -198,6 +215,7 @@ async def test_kanban_wip_overflow_flags_column():
 
 
 # ---------------- bulk actions (visual mode) ----------------
+
 
 @pytest.mark.asyncio
 async def test_kanban_bulk_complete():

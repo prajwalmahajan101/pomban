@@ -39,11 +39,10 @@ class PresetPicker(ModalScreen[Preset | None]):
         self.presets = presets
 
     def compose(self) -> ComposeResult:
-        with Center():
-            with Vertical():
-                yield Static("[b]Choose a preset[/] [dim](enter to select, esc to cancel)[/]")
-                lv = ListView(*[PresetItem(p) for p in self.presets])
-                yield lv
+        with Center(), Vertical():
+            yield Static("[b]Choose a preset[/] [dim](enter to select, esc to cancel)[/]")
+            lv = ListView(*[PresetItem(p) for p in self.presets])
+            yield lv
 
     def action_pick(self) -> None:
         lv = self.query_one(ListView)

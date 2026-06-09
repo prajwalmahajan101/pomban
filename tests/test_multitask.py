@@ -59,9 +59,7 @@ async def test_start_focus_on_many_creates_one_session_three_links():
                 "SELECT COUNT(*) AS n FROM session_tasks WHERE session_id=?", (sid,)
             ).fetchone()["n"]
             assert n_links == 3
-            n_sessions = db.conn.execute(
-                "SELECT COUNT(*) AS n FROM sessions"
-            ).fetchone()["n"]
+            n_sessions = db.conn.execute("SELECT COUNT(*) AS n FROM sessions").fetchone()["n"]
             assert n_sessions == 1
             for t in tasks:
                 assert db.get_task(t.id).status == "doing"
