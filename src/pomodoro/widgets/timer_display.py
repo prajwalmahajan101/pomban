@@ -61,8 +61,5 @@ class TimerDisplay(Static):
                 f"[dim]on:[/dim] [b]{escape(self.active_task)}[/b]" if self.active_task else ""
             )
         return (
-            f"[{color}]{label}[/]\n\n"
-            f"[bold]{time_str}[/]\n\n"
-            f"{dots}   [dim]{state}[/]\n"
-            f"{task_line}"
+            f"[{color}]{label}[/]\n\n[bold]{time_str}[/]\n\n{dots}   [dim]{state}[/]\n{task_line}"
         )

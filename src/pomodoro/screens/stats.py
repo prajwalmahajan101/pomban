@@ -133,7 +133,7 @@ class StatsScreen(AppScreen):
         avg_ratio = sum(r for r in ratios if r > 0) / max(1, sum(1 for r in ratios if r > 0))
         if avg_ratio > 0:
             if avg_ratio < 0.9:
-                est_text = f"  avg ratio = {avg_ratio:.2f} — your estimates are [red]{(1/avg_ratio):.1f}× too optimistic[/]"
+                est_text = f"  avg ratio = {avg_ratio:.2f} — your estimates are [red]{(1 / avg_ratio):.1f}× too optimistic[/]"
             elif avg_ratio > 1.1:
                 est_text = f"  avg ratio = {avg_ratio:.2f} — your estimates are [yellow]{avg_ratio:.1f}× too pessimistic[/]"
             else:
@@ -222,7 +222,7 @@ class StatsScreen(AppScreen):
         top = db.top_tasks(5)
         if top:
             top_text = "\n".join(
-                f"  {i+1}. {title} — {_fmt_hours(m)}" for i, (title, m) in enumerate(top)
+                f"  {i + 1}. {title} — {_fmt_hours(m)}" for i, (title, m) in enumerate(top)
             )
         else:
             top_text = "[dim]no completed focus sessions yet[/]"
@@ -232,7 +232,7 @@ class StatsScreen(AppScreen):
         avg = db.avg_interruptions_per_focus()
         total_mins = sum(m for _, m in thirty)
         summary = (
-            f"  Today: {today['sessions']} sessions, {_fmt_hours(today['focus_seconds']//60)}\n"
+            f"  Today: {today['sessions']} sessions, {_fmt_hours(today['focus_seconds'] // 60)}\n"
             f"  Streak: {today['streak']} day(s)\n"
             f"  30-day total: {_fmt_hours(total_mins)}\n"
             f"  Avg interruptions / focus session: {avg:.1f}"

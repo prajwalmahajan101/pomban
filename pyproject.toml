@@ -17,7 +17,7 @@ dependencies = [
 dev = [
     "pytest>=8",
     "pytest-asyncio>=0.23",
-    "ruff>=0.6",
+    "ruff==0.15.16",
 ]
 
 [project.scripts]
@@ -44,7 +44,8 @@ ignore = [
     "RUF001", # ambiguous unicode in strings — author's choice (× as "x times" etc.)
     "RUF002", # ambiguous unicode in docstrings — author's choice
     "RUF003", # ambiguous unicode in comments — author's choice
-    "UP007",  # PEP-604 union — Optional[X] kept on Textual generic bases (runtime-evaluated)
+    "UP045",  # PEP-604 union — Optional[X] kept on Textual generic bases (runtime-evaluated)
+    "UP042",  # str-mixin Enum — explicit (str, Enum) preferred over StrEnum here for clarity
     "SIM117", # combine `with` — nested `with` matches the visual widget hierarchy in compose()
 ]
 

@@ -34,7 +34,7 @@ def render_chips(tags: str) -> str:
 def render_project_badge(name: str | None, color: str | None) -> str:
     """Render a small colored project badge. Pass name=None for Inbox."""
     label = escape(name) if name else "Inbox"
-    c = adapt(color or ("white" if name else "white"))
+    c = adapt(color or "white")
     # `reverse` is a style, not a color, so it survives NO_COLOR on its own.
     return f"[reverse {c}] {label} [/]" if c else f"[reverse] {label} [/]"
 
