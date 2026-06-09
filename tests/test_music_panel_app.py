@@ -31,6 +31,7 @@ async def test_music_panel_mounts_and_shows_not_running():
             assert panel is not None
             await pilot.pause()
             from textual.widgets import Static
+
             title = panel.query_one("#np-title", Static).render()
             assert "not running" in str(title)
         db.close()
@@ -40,6 +41,7 @@ async def test_music_panel_mounts_and_shows_not_running():
 async def test_music_panel_does_not_overlap_footer():
     # Regression: the panel used to dock:bottom and collide with the Footer's row.
     from textual.widgets import Footer
+
     with tempfile.TemporaryDirectory() as td:
         db = DB(Path(td) / "m.db")
         app = PomodoroApp(db=db, fast=True, config=_config_with_music())

@@ -6,6 +6,7 @@ Dismisses with:
   >0 → project id
   None → cancelled
 """
+
 from __future__ import annotations
 
 from textual.app import ComposeResult
@@ -45,18 +46,14 @@ class ProjectPickerModal(ModalScreen[int | None]):
         self.current = current
 
     def compose(self) -> ComposeResult:
-        with Center():
-            with Vertical():
-                yield Static("[b]Filter by project[/]  [dim](enter to select, esc to cancel)[/]")
-                items: list[_PickItem] = []
-                items.append(_PickItem(-1, "[reverse white] All [/]  show every task"))
-                items.append(_PickItem(0, "[reverse white] Inbox [/]  unfiled tasks"))
-                for p in self.projects:
-                    items.append(_PickItem(
-                        p.id,
-                        f"[reverse {p.color}] {p.name} [/]"
-                    ))
-                yield ListView(*items)
+        with Center(), Vertical():
+            yield Static("[b]Filter by project[/]  [dim](enter to select, esc to cancel)[/]")
+            items: list[_PickItem] = []
+            items.append(_PickItem(-1, "[reverse white] All [/]  show every task"))
+            items.append(_PickItem(0, "[reverse white] Inbox [/]  unfiled tasks"))
+            for p in self.projects:
+                items.append(_PickItem(p.id, f"[reverse {p.color}] {p.name} [/]"))
+            yield ListView(*items)
 
     def action_pick(self) -> None:
         lv = self.query_one(ListView)

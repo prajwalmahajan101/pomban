@@ -3,8 +3,10 @@
 Fire-and-forget, error-isolated — mirrors notifications.run_hook: a missing player
 binary logs one line and returns silently rather than crashing the TUI.
 """
+
 from __future__ import annotations
 
+import contextlib
 import json
 import os
 import shutil
@@ -12,7 +14,6 @@ import subprocess
 from pathlib import Path
 
 from pomodoro.core.config import MusicSection
-
 
 # Maps a phase event to the configured subcommand attribute on MusicSection.
 _EVENT_ATTR = {
@@ -27,7 +28,7 @@ class MusicController:
     def __init__(self, cfg: MusicSection) -> None:
         self.cfg = cfg
         self._daemon_proc = None  # the headless instance we spawned (if any)
-        self._stopping = False    # set on shutdown to win the start/stop race
+        self._stopping = False  # set on shutdown to win the start/stop race
 
     # ---- headless daemon lifecycle ----
     def start_daemon(self):
@@ -54,8 +55,10 @@ class MusicController:
         try:
             proc = subprocess.Popen(
                 [player, *args],
-                stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL,
-                stdin=subprocess.DEVNULL, start_new_session=True,
+                stdout=subprocess.DEVNULL,
+                stderr=subprocess.DEVNULL,
+                stdin=subprocess.DEVNULL,
+                start_new_session=True,
             )
         except (OSError, ValueError) as e:
             self._log(f"failed to start daemon: {e}")
@@ -78,10 +81,8 @@ class MusicController:
     @staticmethod
     def _terminate(proc) -> None:
         if proc is not None and proc.poll() is None:
-            try:
+            with contextlib.suppress(Exception):
                 proc.terminate()
-            except Exception:
-                pass
 
     def fire(self, event: str) -> None:
         """Run the subcommand configured for a phase event (e.g. 'focus_start')."""
@@ -105,8 +106,7 @@ class MusicController:
         """Adjust volume by a signed dB delta (cliamp `volume <dB>`)."""
         self._run("volume", f"{db_delta:+g}")
 
-    def seek(self, seconds: float, *, relative: bool = False,
-             current: float | None = None) -> None:
+    def seek(self, seconds: float, *, relative: bool = False, current: float | None = None) -> None:
         """Seek playback. cliamp `seek <seconds>` is an *absolute* position, so a
         relative skip is computed from ``current`` (the polled position). Clamped
         at 0; the seconds are rounded to a whole number for the CLI."""
@@ -165,7 +165,9 @@ class MusicController:
         try:
             proc = subprocess.run(
                 [player, "status", "--json"],
-                capture_output=True, text=True, timeout=0.5,
+                capture_output=True,
+                text=True,
+                timeout=0.5,
             )
         except (OSError, subprocess.SubprocessError):
             return None
@@ -190,7 +192,9 @@ class MusicController:
         try:
             return subprocess.Popen(
                 [player, "visstream", "--fps", str(int(fps))],
-                stdout=subprocess.PIPE, stderr=subprocess.DEVNULL, text=True,
+                stdout=subprocess.PIPE,
+                stderr=subprocess.DEVNULL,
+                text=True,
             )
         except (OSError, ValueError) as e:
             self._log(f"failed to start visstream: {e}")
@@ -208,8 +212,7 @@ class MusicController:
         if shutil.which(player) is None:
             return None
         try:
-            proc = subprocess.run([player, *args], capture_output=True,
-                                  text=True, timeout=timeout)
+            proc = subprocess.run([player, *args], capture_output=True, text=True, timeout=timeout)
         except (OSError, subprocess.SubprocessError):
             return None
         return proc.stdout or ""
@@ -236,6 +239,7 @@ class MusicController:
         if out is None:
             return None
         from pomodoro.music_view import parse_playlists
+
         return parse_playlists(out)
 
     def playlist_tracks(self, name: str) -> list[dict] | None:
@@ -264,15 +268,18 @@ class MusicController:
             self._log(f"player {player!r} not found on PATH; skipped {subcmd!r}")
             return
         try:
-            subprocess.Popen([player, subcmd, *args],
-                             stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+            subprocess.Popen(
+                [player, subcmd, *args], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL
+            )
         except (FileNotFoundError, OSError) as e:
             self._log(f"failed to run {player} {subcmd}: {e}")
 
     @staticmethod
     def _log(message: str) -> None:
-        log_dir = Path(os.environ.get("XDG_STATE_HOME")
-                       or str(Path.home() / ".local" / "state")) / "pomodoro"
+        log_dir = (
+            Path(os.environ.get("XDG_STATE_HOME") or str(Path.home() / ".local" / "state"))
+            / "pomodoro"
+        )
         try:
             log_dir.mkdir(parents=True, exist_ok=True)
             with open(log_dir / "music.log", "a") as f:

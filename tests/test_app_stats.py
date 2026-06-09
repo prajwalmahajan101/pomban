@@ -33,13 +33,15 @@ async def test_switch_to_stats_screen():
 async def test_pause_during_focus_logs_interruption():
     with tempfile.TemporaryDirectory() as td:
         db = DB(Path(td) / "s.db")
-        t = db.add_task("Tracked")
+        db.add_task("Tracked")
         app = PomodoroApp(db=db, fast=True)
         async with app.run_test() as pilot:
             scr = await wait_for(pilot, DashboardScreen)
             from textual.widgets import ListView
+
             lv = scr.query_one("#task-list", ListView)
-            lv.focus(); lv.index = 0
+            lv.focus()
+            lv.index = 0
             await pilot.press("enter")
             await pilot.pause()
             sid = app.current_session_id
@@ -48,6 +50,8 @@ async def test_pause_during_focus_logs_interruption():
             await pilot.press("s")
             await pilot.pause()
             assert not app.engine.running
-            row = db.conn.execute("SELECT interruption_count FROM sessions WHERE id=?", (sid,)).fetchone()
+            row = db.conn.execute(
+                "SELECT interruption_count FROM sessions WHERE id=?", (sid,)
+            ).fetchone()
             assert row["interruption_count"] == 1
         db.close()

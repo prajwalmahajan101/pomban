@@ -1,4 +1,5 @@
 """Tests for Phase I: projects, @project inline parser, filter sentinel, migration v3."""
+
 from __future__ import annotations
 
 import sqlite3
@@ -7,7 +8,7 @@ from pathlib import Path
 
 import pytest
 
-from pomodoro.core.db import DB, _NO, SCHEMA_VERSION
+from pomodoro.core.db import DB, SCHEMA_VERSION
 
 
 @pytest.fixture
@@ -74,6 +75,7 @@ def test_app_parser_handles_at_project_and_tilde_estimate():
     # Pure parser test — we don't need full app, just verify add_task_from_input logic
     # by replicating the parsing inline. Real integration covered by smoke test.
     from pomodoro.app import PomodoroApp
+
     p = Path(tempfile.mktemp(suffix=".db"))
     d = DB(p)
     # Build an app shell with no Textual mount

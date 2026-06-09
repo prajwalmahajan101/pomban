@@ -9,8 +9,10 @@ All player I/O is off the UI thread: status reads run via ``asyncio.to_thread``
 and the visualizer reads its pipe in a thread worker, so a slow or missing
 player never blocks the timer.
 """
+
 from __future__ import annotations
 
+import contextlib
 import json
 
 from rich.markup import escape
@@ -47,9 +49,15 @@ class MusicPanel(Vertical):
         ("V,shift+v", "toggle_visualizer", "Visualizer"),
     ]
 
-    def __init__(self, controller, *, visualizer: bool = False,
-                 poll_seconds: float = 1.0, vis_fps: int = 20,
-                 volume_step: float = 2.0) -> None:
+    def __init__(
+        self,
+        controller,
+        *,
+        visualizer: bool = False,
+        poll_seconds: float = 1.0,
+        vis_fps: int = 20,
+        volume_step: float = 2.0,
+    ) -> None:
         super().__init__(id="music-pane")
         self.controller = controller
         self.visualizer = visualizer
@@ -74,6 +82,7 @@ class MusicPanel(Vertical):
     @work(exclusive=True, group="music-status")
     async def refresh_status(self) -> None:
         import asyncio
+
         status = await asyncio.to_thread(self.controller.status)
         self._apply_status(status)
 
@@ -117,10 +126,8 @@ class MusicPanel(Vertical):
                 if frame:
                     self.app.call_from_thread(self._apply_frame, frame)
         finally:
-            try:
+            with contextlib.suppress(Exception):
                 proc.terminate()
-            except Exception:
-                pass
             self._vis_proc = None
 
     @staticmethod
@@ -146,10 +153,10 @@ class MusicPanel(Vertical):
             return None
 
     def _apply_frame(self, frame: list[float]) -> None:
-        try:
-            self.query_one("#vis", Sparkline).set_values(frame, color=adapt("bright_cyan") or "cyan")
-        except Exception:
-            pass
+        with contextlib.suppress(Exception):
+            self.query_one("#vis", Sparkline).set_values(
+                frame, color=adapt("bright_cyan") or "cyan"
+            )
 
     # ---- actions ----
     def action_toggle(self) -> None:
@@ -180,8 +187,6 @@ class MusicPanel(Vertical):
         else:
             self.workers.cancel_group(self, "music-vis")
             if self._vis_proc is not None:
-                try:
+                with contextlib.suppress(Exception):
                     self._vis_proc.terminate()
-                except Exception:
-                    pass
                 self._vis_proc = None

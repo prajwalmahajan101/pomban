@@ -1,12 +1,13 @@
 from __future__ import annotations
 
+import contextlib
 from datetime import date, timedelta
 
 from textual.app import ComposeResult
 from textual.binding import Binding
-from textual.containers import Vertical
-from pomodoro.screens.base import AppScreen
 from textual.widgets import DataTable, Footer, Header, Input, Static
+
+from pomodoro.screens.base import AppScreen
 
 
 class SprintsScreen(AppScreen):
@@ -45,8 +46,10 @@ class SprintsScreen(AppScreen):
 
     def compose(self) -> ComposeResult:
         yield Header(show_clock=True)
-        yield Static("[b]Sprints[/]  [dim]n=new  a=activate  c=complete  x=cancel  d=delete  e=target  g=goal  enter=filter[/]",
-                     id="sprint-help")
+        yield Static(
+            "[b]Sprints[/]  [dim]n=new  a=activate  c=complete  x=cancel  d=delete  e=target  g=goal  enter=filter[/]",
+            id="sprint-help",
+        )
         yield DataTable(id="sprint-table", cursor_type="row")
         yield Input(placeholder="(press n to add a new sprint)", id="sprint-input")
         yield Footer()
@@ -78,14 +81,15 @@ class SprintsScreen(AppScreen):
             try:
                 end = date.fromisoformat(sp.end_date)
                 days_left = max(0, (end - date.today()).days)
-                if sp.status in ("completed", "cancelled"):
-                    days_left_s = "—"
-                else:
-                    days_left_s = str(days_left)
+                days_left_s = "—" if sp.status in ("completed", "cancelled") else str(days_left)
             except Exception:
                 days_left_s = "?"
-            status_mark = {"active": "▶ active", "planned": "· planned",
-                           "completed": "✓ done", "cancelled": "x cancelled"}.get(sp.status, sp.status)
+            status_mark = {
+                "active": "▶ active",
+                "planned": "· planned",
+                "completed": "✓ done",
+                "cancelled": "x cancelled",
+            }.get(sp.status, sp.status)
             table.add_row(
                 status_mark,
                 f"[reverse {pcolor}] {pname} [/]",
@@ -192,10 +196,8 @@ class SprintsScreen(AppScreen):
         if sp.project_id is not None:
             self.app.set_active_project(sp.project_id)
         self.app.set_active_sprint(sid)
-        try:
+        with contextlib.suppress(Exception):
             self.app.switch_screen("kanban")
-        except Exception:
-            pass
 
     def action_blur_input(self) -> None:
         self._mode = None
@@ -223,13 +225,10 @@ class SprintsScreen(AppScreen):
             scope_pid = self.app.project_filter.scoped_project_id
             today = date.today().isoformat()
             end = (date.today() + timedelta(days=14)).isoformat()
-            self.app.db.add_sprint(scope_pid, name, today, end,
-                                   pomodoro_target=target)
+            self.app.db.add_sprint(scope_pid, name, today, end, pomodoro_target=target)
         elif self._mode == "target" and self._target_id is not None:
-            try:
+            with contextlib.suppress(ValueError):
                 self.app.db.update_sprint(self._target_id, pomodoro_target=int(text))
-            except ValueError:
-                pass
         elif self._mode == "goal" and self._target_id is not None:
             self.app.db.update_sprint(self._target_id, goal=text)
         self.action_blur_input()

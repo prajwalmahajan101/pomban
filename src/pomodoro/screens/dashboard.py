@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+import contextlib
+
 from rich.markup import escape
 from textual.app import ComposeResult
 from textual.binding import Binding
@@ -8,16 +10,17 @@ from textual.widgets import Footer, Header, Input, ListItem, ListView, Static
 
 from pomodoro.core.models import Task
 from pomodoro.screens.base import AppScreen
+from pomodoro.widgets.card import render_project_badge
 from pomodoro.widgets.music_panel import MusicPanel
+from pomodoro.widgets.panel import panel_title
 from pomodoro.widgets.stats_strip import StatsStrip
 from pomodoro.widgets.timer_display import TimerDisplay
-from pomodoro.widgets.card import render_project_badge
-from pomodoro.widgets.panel import panel_title
 
 
 class TaskItem(ListItem):
-    def __init__(self, task: Task, project_name: str | None = None,
-                 project_color: str | None = None) -> None:
+    def __init__(
+        self, task: Task, project_name: str | None = None, project_color: str | None = None
+    ) -> None:
         mark = {"todo": "[ ]", "doing": "[~]", "done": "[x]"}[task.status]
         badge = render_project_badge(project_name, project_color)
         label = f"{badge} {mark} {escape(task.title)}"
@@ -102,9 +105,13 @@ class DashboardScreen(AppScreen):
                 yield Input(placeholder="Add a task — use #tag inline", id="task-input")
         mcfg = self.app.config.music
         if mcfg.enabled and mcfg.show_panel:
-            yield MusicPanel(self.app.music, visualizer=mcfg.visualizer,
-                             poll_seconds=mcfg.poll_seconds, vis_fps=mcfg.visualizer_fps,
-                             volume_step=mcfg.volume_step_db)
+            yield MusicPanel(
+                self.app.music,
+                visualizer=mcfg.visualizer,
+                poll_seconds=mcfg.poll_seconds,
+                vis_fps=mcfg.visualizer_fps,
+                volume_step=mcfg.volume_step_db,
+            )
         yield Footer()
 
     def on_mount(self) -> None:
@@ -155,14 +162,10 @@ class DashboardScreen(AppScreen):
     def _update_subtitle(self) -> None:
         label = self.app.active_project_label() or ""
         if self.app.active_sprint_id is not None:
-            try:
+            with contextlib.suppress(Exception):
                 label = f"{label}  ▸ {self.app.db.get_sprint(self.app.active_sprint_id).name}"
-            except Exception:
-                pass
-        try:
+        with contextlib.suppress(Exception):
             self.sub_title = label.strip()
-        except Exception:
-            pass
 
     def refresh_stats(self) -> None:
         s = self.app.db.stats_today()

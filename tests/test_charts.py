@@ -1,8 +1,9 @@
 """Tests for Phase N: sessions_by_bucket aggregation and chart widget rendering."""
+
 from __future__ import annotations
 
 import tempfile
-from datetime import date, timedelta
+from datetime import date
 from pathlib import Path
 
 import pytest
@@ -72,20 +73,29 @@ def test_sparkline_renders_blocks():
 def test_project_analytics_returns_keys(db):
     p = db.get_or_create_project("x")
     an = db.project_analytics(p.id)
-    for key in ("total_minutes", "week_minutes", "month_minutes",
-                "active_days", "avg_per_active_day_minutes",
-                "last_session", "dow_minutes", "estimate_ratio"):
+    for key in (
+        "total_minutes",
+        "week_minutes",
+        "month_minutes",
+        "active_days",
+        "avg_per_active_day_minutes",
+        "last_session",
+        "dow_minutes",
+        "estimate_ratio",
+    ):
         assert key in an
     assert len(an["dow_minutes"]) == 7
 
 
 def test_tag_color_stable_across_calls():
     from pomodoro.widgets.card import tag_color
+
     assert tag_color("backend") == tag_color("backend")
 
 
 def test_stable_index_is_deterministic():
     from pomodoro.core.colors import stable_index
+
     assert stable_index("hello", 8) == stable_index("hello", 8)
     assert 0 <= stable_index("anything", 5) < 5
 
@@ -93,5 +103,6 @@ def test_stable_index_is_deterministic():
 def test_no_color_strips_markup(monkeypatch):
     monkeypatch.setenv("NO_COLOR", "1")
     from pomodoro.core.colors import adapt, paint
+
     assert adapt("bright_cyan") == ""
     assert paint("x", "red") == "x"

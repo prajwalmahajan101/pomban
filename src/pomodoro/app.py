@@ -1,35 +1,35 @@
 from __future__ import annotations
 
+import contextlib
 import time
 
 from textual.app import App
 from textual.binding import Binding
 
 from pomodoro.core import config as cfg_module
-from pomodoro.core.config import Config, save as save_config
 from pomodoro.core import log
+from pomodoro.core.config import Config
+from pomodoro.core.config import save as save_config
 from pomodoro.core.db import DB
-from pomodoro.core.filters import ProjectFilter
 from pomodoro.core.filter_state import FilterState
-from pomodoro.core.session_coordinator import SessionCoordinator
+from pomodoro.core.filters import ProjectFilter
 from pomodoro.core.models import Task
+from pomodoro.core.session_coordinator import SessionCoordinator
 from pomodoro.core.session_service import SessionService
 from pomodoro.core.timer_engine import Event, Phase, Settings, TimerEngine
 from pomodoro.music import MusicController
 from pomodoro.notifications import NotifyConfig, fire, run_hook
-from pomodoro.plugins import git_sync, registry as plugin_registry
+from pomodoro.plugins import git_sync
+from pomodoro.plugins import registry as plugin_registry
 from pomodoro.screens.base import AppScreen
-from pomodoro.screens.presets import PresetPicker
-from pomodoro.screens.resume import ResumePrompt
 from pomodoro.screens.dashboard import DashboardScreen
 from pomodoro.screens.help import HelpScreen
 from pomodoro.screens.history import HistoryScreen
 from pomodoro.screens.kanban import KanbanScreen
+from pomodoro.screens.presets import PresetPicker
+from pomodoro.screens.resume import ResumePrompt
 from pomodoro.screens.session_end import SessionEndScreen
 from pomodoro.screens.stats import StatsScreen
-from pomodoro.widgets.stats_strip import StatsStrip
-from pomodoro.widgets.timer_display import TimerDisplay
-
 
 THEMES = ["nord", "gruvbox", "dracula", "catppuccin-mocha"]
 
@@ -52,18 +52,32 @@ class PomodoroApp(App):
         Binding("M,shift+m", "music_next", "Next track", show=False),
     ]
 
-    def __init__(self, db: DB | None = None, fast: bool = False, settings: Settings | None = None,
-                 notify_cfg: NotifyConfig | None = None, config: Config | None = None,
-                 config_path=None) -> None:
+    def __init__(
+        self,
+        db: DB | None = None,
+        fast: bool = False,
+        settings: Settings | None = None,
+        notify_cfg: NotifyConfig | None = None,
+        config: Config | None = None,
+        config_path=None,
+    ) -> None:
         super().__init__()
         self.config = config or cfg_module.load(config_path)
         self.config_path = config_path
         self.db = db or DB()
         self.sessions = SessionService(self.db)
         if settings is None:
-            settings = (Settings(focus_seconds=5, short_break_seconds=3, long_break_seconds=4,
-                                 cycles_before_long_break=4, warning_seconds=2)
-                        if fast else cfg_module.to_settings(self.config))
+            settings = (
+                Settings(
+                    focus_seconds=5,
+                    short_break_seconds=3,
+                    long_break_seconds=4,
+                    cycles_before_long_break=4,
+                    warning_seconds=2,
+                )
+                if fast
+                else cfg_module.to_settings(self.config)
+            )
         if notify_cfg is None:
             notify_cfg = cfg_module.to_notify_config(self.config)
         self.engine = TimerEngine(settings=settings)
@@ -113,6 +127,7 @@ class PomodoroApp(App):
     def on_mount(self) -> None:
         from pomodoro.screens.projects import ProjectsScreen
         from pomodoro.screens.sprints import SprintsScreen
+
         self.install_screen(DashboardScreen(), name="dashboard")
         self.install_screen(KanbanScreen(), name="kanban")
         self.install_screen(StatsScreen(), name="stats")
@@ -121,6 +136,7 @@ class PomodoroApp(App):
         self.install_screen(SprintsScreen(), name="sprints")
         if self.config.music.music_screen:
             from pomodoro.screens.music import MusicScreen
+
             self.install_screen(MusicScreen(self.music), name="music")
         self.push_screen("dashboard")
         plugin_registry().discover()
@@ -130,10 +146,8 @@ class PomodoroApp(App):
         # so the music panel works without a separately-launched player instance.
         if self.config.music.enabled:
             self.run_worker(self.music.start_daemon, thread=True, group="music-daemon")
-        try:
+        with contextlib.suppress(Exception):
             self.theme = THEMES[self._theme_idx]
-        except Exception:
-            pass
 
     # ---------- ticking ----------
     def _tick(self) -> None:
@@ -173,17 +187,13 @@ class PomodoroApp(App):
             self._on_phase_completed()
 
     def _on_ending_soon(self) -> None:
-        try:
+        with contextlib.suppress(Exception):
             self.bell()
-        except Exception:
-            pass
-        try:
+        with contextlib.suppress(Exception):
             self.notify(
                 f"{self.engine.settings.warning_seconds}s left on {self.engine.phase.value}",
                 timeout=3,
             )
-        except Exception:
-            pass
 
     def _on_phase_completed(self) -> None:
         actual = 0
@@ -207,9 +217,13 @@ class PomodoroApp(App):
         lunch_minutes = getattr(self.config, "breaks", None)
         lunch_minutes = lunch_minutes.lunch_minutes if lunch_minutes else 45
         multi_tasks = list(self.active_tasks) if len(self.active_tasks) > 1 else None
-        screen = SessionEndScreen(completed_phase=completed_phase, task_title=task_title,
-                                  suggest_lunch=suggest_lunch, lunch_minutes=lunch_minutes,
-                                  multi_tasks=multi_tasks)
+        screen = SessionEndScreen(
+            completed_phase=completed_phase,
+            task_title=task_title,
+            suggest_lunch=suggest_lunch,
+            lunch_minutes=lunch_minutes,
+            multi_tasks=multi_tasks,
+        )
         # Defer the modal push so the 0.25s tick callback returns immediately instead
         # of mounting a screen synchronously inside the timer loop. Capture the session
         # id now and guard the push: if a global action (e.g. Shift+L lunch, reset,
@@ -247,7 +261,7 @@ class PomodoroApp(App):
                 self.sessions.end(sid, actual_seconds=actual, completed=True)
             self.current_session_id = None
             self.session_start_monotonic = None
-            self.engine.confirm_advance(time.monotonic())   # advance state machine
+            self.engine.confirm_advance(time.monotonic())  # advance state machine
             # Now drop into LONG_PAUSE.
             breaks = getattr(self.config, "breaks", None)
             minutes = breaks.lunch_minutes if breaks else 45
@@ -256,6 +270,7 @@ class PomodoroApp(App):
         if action == "complete_multi":
             # Multi-task session: ask which of the active tasks are done.
             from pomodoro.screens.session_end import MultiCompleteModal
+
             tasks = list(self.active_tasks)
             self.push_screen(
                 MultiCompleteModal(tasks),
@@ -274,8 +289,7 @@ class PomodoroApp(App):
         self._log_new_session()
         self._refresh_all()
 
-    def _finalize_multi_complete(self, sid: int | None, actual: int,
-                                 ids: list[int] | None) -> None:
+    def _finalize_multi_complete(self, sid: int | None, actual: int, ids: list[int] | None) -> None:
         ids = ids or []
         if sid is not None:
             self.sessions.end(sid, actual_seconds=actual, completed=True)
@@ -310,10 +324,8 @@ class PomodoroApp(App):
                 pass
 
     def _unflash(self) -> None:
-        try:
+        with contextlib.suppress(Exception):
             self.screen.styles.animate("opacity", 1.0, duration=0.2)
-        except Exception:
-            pass
 
     def _fire_phase_hooks(self, starting: bool, phase: Phase) -> None:
         hooks = self.config.hooks
@@ -343,8 +355,7 @@ class PomodoroApp(App):
         if self.engine.phase == Phase.IDLE:
             return
         self._fire_phase_hooks(starting=True, phase=self.engine.phase)
-        task_ids = ([t.id for t in self.active_tasks]
-                    if self.engine.phase == Phase.FOCUS else [])
+        task_ids = [t.id for t in self.active_tasks] if self.engine.phase == Phase.FOCUS else []
         self.coord.begin(task_ids)
 
     # ---------- public API used by screens ----------
@@ -365,10 +376,8 @@ class PomodoroApp(App):
         self._log_new_session()
         # If we're on Kanban, jump to Dashboard so the timer is visible.
         if self.screen.__class__.__name__ != "DashboardScreen":
-            try:
+            with contextlib.suppress(Exception):
                 self.switch_screen("dashboard")
-            except Exception:
-                pass
         self._refresh_all()
 
     def add_task_from_input(self, text: str) -> Task:
@@ -381,6 +390,7 @@ class PomodoroApp(App):
         the filter project, so applying it elsewhere would be inconsistent).
         """
         from pomodoro.core.task_input import parse_task_input
+
         parsed = parse_task_input(text)
         project_id: int | None = None
         sprint_id: int | None = None
@@ -392,9 +402,13 @@ class PomodoroApp(App):
             sprint_id = self.db.get_or_create_sprint(project_id, parsed.sprint_name).id
         elif self.active_sprint_id is not None and not parsed.project_name:
             sprint_id = self.active_sprint_id
-        return self.db.add_task(parsed.title, tags=parsed.tags_csv,
-                                estimated_pomodoros=parsed.estimate,
-                                project_id=project_id, sprint_id=sprint_id)
+        return self.db.add_task(
+            parsed.title,
+            tags=parsed.tags_csv,
+            estimated_pomodoros=parsed.estimate,
+            project_id=project_id,
+            sprint_id=sprint_id,
+        )
 
     def delete_task_by_id(self, task_id: int) -> None:
         self.active_tasks = [t for t in self.active_tasks if t.id != task_id]
@@ -484,6 +498,7 @@ class PomodoroApp(App):
         if task is None:
             return
         from pomodoro.screens.edit_task import EditTaskModal
+
         project_name = None
         if task.project_id is not None:
             try:
@@ -499,10 +514,7 @@ class PomodoroApp(App):
         if result is None:
             return
         project_name = (result.get("project") or "").strip()
-        if project_name:
-            project_id = self.db.get_or_create_project(project_name).id
-        else:
-            project_id = None
+        project_id = self.db.get_or_create_project(project_name).id if project_name else None
         self.db.update_task(
             task_id,
             title=result["title"],
@@ -552,16 +564,19 @@ class PomodoroApp(App):
             lambda resume: self._on_resume_choice(resume, sid, remaining, phase_str, task_id_str),
         )
 
-    def _on_resume_choice(self, resume: bool | None, sid: int, remaining: int,
-                          phase_str: str, task_id_str: str | None) -> None:
-        for k in ("pending_session_id", "pending_remaining_seconds", "pending_phase",
-                  "pending_task_id"):
+    def _on_resume_choice(
+        self, resume: bool | None, sid: int, remaining: int, phase_str: str, task_id_str: str | None
+    ) -> None:
+        for k in (
+            "pending_session_id",
+            "pending_remaining_seconds",
+            "pending_phase",
+            "pending_task_id",
+        ):
             self.db.kv_delete(k)
         if not resume:
-            try:
+            with contextlib.suppress(Exception):
                 self.sessions.end(sid, actual_seconds=0, completed=False)
-            except Exception:
-                pass
             return
         # Resume: load task, restore engine state, log nothing new (reuse session row).
         if task_id_str:
@@ -600,10 +615,10 @@ class PomodoroApp(App):
 
     def action_pick_preset(self) -> None:
         if not self.config.presets:
-            try:
-                self.notify("No presets configured. Add [[preset]] entries to your config.toml.", timeout=4)
-            except Exception:
-                pass
+            with contextlib.suppress(Exception):
+                self.notify(
+                    "No presets configured. Add [[preset]] entries to your config.toml.", timeout=4
+                )
             return
         self.push_screen(PresetPicker(self.config.presets), self._on_preset_picked)
 
@@ -617,10 +632,8 @@ class PomodoroApp(App):
             cycles_before_long_break=preset.cycles_before_long_break,
             warning_seconds=self.engine.settings.warning_seconds,
         )
-        try:
+        with contextlib.suppress(Exception):
             self.notify(f"Preset '{preset.name}' will apply on next session.", timeout=3)
-        except Exception:
-            pass
 
     # ---------- project / sprint filter (state lives in self.filters) ----------
     @property
@@ -653,6 +666,7 @@ class PomodoroApp(App):
 
     def action_pick_project(self) -> None:
         from pomodoro.screens.project_picker import ProjectPickerModal
+
         self.push_screen(
             ProjectPickerModal(self.db.list_projects(), self.project_filter.project_id),
             self._on_project_picked,
@@ -674,17 +688,17 @@ class PomodoroApp(App):
                 label = self.db.get_project(int(result)).name
             except Exception:
                 label = "project"
-        try:
+        with contextlib.suppress(Exception):
             self.notify(f"Project filter: {label}", timeout=2)
-        except Exception:
-            pass
 
     def action_cycle_project(self) -> None:
         """Cycle through: All → each project → Inbox → All ..."""
         projects = self.db.list_projects()
-        cycle = ([ProjectFilter.all()]
-                 + [ProjectFilter.project(p.id) for p in projects]
-                 + [ProjectFilter.inbox()])
+        cycle = (
+            [ProjectFilter.all()]
+            + [ProjectFilter.project(p.id) for p in projects]
+            + [ProjectFilter.inbox()]
+        )
         try:
             idx = cycle.index(self.project_filter)
         except ValueError:
@@ -692,10 +706,8 @@ class PomodoroApp(App):
         nxt = cycle[(idx + 1) % len(cycle)]
         self.set_project_filter(nxt)
         label = self.active_project_label() or "All"
-        try:
+        with contextlib.suppress(Exception):
             self.notify(f"Project: {label}", timeout=2)
-        except Exception:
-            pass
 
     def project_filter_for_db(self):
         """Translate the active filter into the db.list_tasks `project_filter` value."""
@@ -709,6 +721,7 @@ class PomodoroApp(App):
 
     def action_pick_sprint(self) -> None:
         from pomodoro.screens.sprint_picker import SprintPickerModal
+
         # Sprints scoped to the active project (or all if no real project filter)
         scope_pid = self.project_filter.scoped_project_id
         sprints = self.db.list_sprints(project_id=scope_pid)
@@ -728,13 +741,11 @@ class PomodoroApp(App):
     # ---------- lunch break ----------
     def action_lunch_break(self) -> None:
         """Start a long pause (lunch). Saves current phase to resume after."""
-        from pomodoro.core.timer_engine import Phase
         breaks = getattr(self.config, "breaks", None)
         minutes = breaks.lunch_minutes if breaks else 45
         self._start_long_pause(minutes * 60, label="lunch")
 
     def _start_long_pause(self, seconds: int, label: str = "long_pause") -> None:
-        from pomodoro.core.timer_engine import Phase
         # If a session is running, log an interruption with reason, end it as incomplete.
         if self.current_session_id is not None and self.session_start_monotonic is not None:
             try:
@@ -748,51 +759,37 @@ class PomodoroApp(App):
         # Log the long pause as a session (engine is now in LONG_PAUSE with
         # remaining == seconds, so coord.begin records the right planned time).
         self.coord.begin([])
-        try:
+        with contextlib.suppress(Exception):
             self.notify(f"⏸  {label} started ({seconds // 60} min)", timeout=3)
-        except Exception:
-            pass
         self._refresh_all()
 
     def action_music_toggle(self) -> None:
         self.music.toggle()
         if self.config.music.enabled:
-            try:
+            with contextlib.suppress(Exception):
                 self.notify("♪ play / pause", timeout=2)
-            except Exception:
-                pass
 
     def action_music_next(self) -> None:
         self.music.next()
         if self.config.music.enabled:
-            try:
+            with contextlib.suppress(Exception):
                 self.notify("♪ ⏭ next track", timeout=2)
-            except Exception:
-                pass
 
     def action_toggle_auto_advance(self) -> None:
         self.config.timer.auto_advance = not self.config.timer.auto_advance
         state = "on" if self.config.timer.auto_advance else "off"
-        try:
+        with contextlib.suppress(Exception):
             self.notify(f"Auto-advance {state}", timeout=2)
-        except Exception:
-            pass
         if self.config_path is not None:
-            try:
+            with contextlib.suppress(Exception):
                 save_config(self.config, self.config_path)
-            except Exception:
-                pass
 
     def action_cycle_theme(self) -> None:
         self._theme_idx = (self._theme_idx + 1) % len(THEMES)
         name = THEMES[self._theme_idx]
-        try:
+        with contextlib.suppress(Exception):
             self.theme = name
-        except Exception:
-            pass
         self.config.ui.theme = name
         if self.config_path is not None:
-            try:
+            with contextlib.suppress(Exception):
                 save_config(self.config, self.config_path)
-            except Exception:
-                pass

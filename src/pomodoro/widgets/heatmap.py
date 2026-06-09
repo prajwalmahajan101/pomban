@@ -1,4 +1,5 @@
 """Pure renderer: list of (date, minutes) → unicode block-character bar chart string."""
+
 from __future__ import annotations
 
 from textual.widgets import Static
@@ -13,7 +14,7 @@ def render_heatmap(data: list[tuple[str, int]], cell_per_step: int = 30) -> str:
     """
     if not data:
         return "[dim]no data[/]"
-    labels = "  ".join(d[5:] for d, _ in data)   # MM-DD
+    labels = "  ".join(d[5:] for d, _ in data)  # MM-DD
     cells = []
     for _, mins in data:
         idx = min(len(BLOCKS) - 1, mins // cell_per_step)

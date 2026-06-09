@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
-from typing import Literal, Optional
+from typing import Literal
 
 TaskStatus = Literal["todo", "doing", "done"]
 SessionKind = Literal["focus", "short_break", "long_break", "long_pause"]
@@ -16,11 +16,11 @@ class Task:
     tags: str = ""
     estimated_pomodoros: int = 0
     position: int = 0
-    project_id: Optional[int] = None
-    sprint_id: Optional[int] = None
+    project_id: int | None = None
+    sprint_id: int | None = None
     notes: str = ""
-    due_date: str = ""          # ISO 'YYYY-MM-DD' or '' (none)
-    priority: int = 0           # 0=none, 1=low, 2=med, 3=high
+    due_date: str = ""  # ISO 'YYYY-MM-DD' or '' (none)
+    priority: int = 0  # 0=none, 1=low, 2=med, 3=high
 
 
 @dataclass
@@ -46,7 +46,7 @@ class Project:
 @dataclass
 class Sprint:
     id: int
-    project_id: Optional[int]
+    project_id: int | None
     name: str
     goal: str = ""
     start_date: str = ""

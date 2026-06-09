@@ -1,6 +1,5 @@
 import sqlite3
 import tempfile
-from datetime import datetime, timedelta
 from pathlib import Path
 
 import pytest
@@ -18,6 +17,7 @@ def db():
 
 
 # ---------- DB ----------
+
 
 def test_log_interruption_increments_counter(db):
     t = db.add_task("X")
@@ -100,6 +100,7 @@ def test_migration_v1_to_v2_upgrades_existing_db(tmp_path):
     db.conn.execute("SELECT COUNT(*) FROM interruptions").fetchone()
     # user_version bumped to current SCHEMA_VERSION (currently 6)
     from pomodoro.core.db import SCHEMA_VERSION
+
     v = db.conn.execute("PRAGMA user_version").fetchone()[0]
     assert v == SCHEMA_VERSION
     # Old row preserved
@@ -109,6 +110,7 @@ def test_migration_v1_to_v2_upgrades_existing_db(tmp_path):
 
 
 # ---------- Heatmap renderer ----------
+
 
 def test_heatmap_renders_correct_block_density():
     data = [("2026-05-20", 0), ("2026-05-21", 60), ("2026-05-22", 200)]

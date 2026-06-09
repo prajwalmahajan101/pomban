@@ -1,4 +1,5 @@
 """One-line block sparkline."""
+
 from __future__ import annotations
 
 from textual.widgets import Static
@@ -6,8 +7,9 @@ from textual.widgets import Static
 BLOCKS = " ▁▂▃▄▅▆▇█"
 
 
-def render_sparkline(values: list[float], color: str = "cyan",
-                      target_line: float | None = None) -> str:
+def render_sparkline(
+    values: list[float], color: str = "cyan", target_line: float | None = None
+) -> str:
     if not values:
         return "[dim]—[/]"
     finite = [v for v in values if v == v]  # filter NaN
@@ -27,6 +29,7 @@ def render_sparkline(values: list[float], color: str = "cyan",
 class Sparkline(Static):
     DEFAULT_CSS = "Sparkline { height: 1; padding: 0 1; }"
 
-    def set_values(self, values: list[float], color: str = "cyan",
-                   target_line: float | None = None) -> None:
+    def set_values(
+        self, values: list[float], color: str = "cyan", target_line: float | None = None
+    ) -> None:
         self.update(render_sparkline(values, color=color, target_line=target_line))
