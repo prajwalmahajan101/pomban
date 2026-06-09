@@ -111,7 +111,7 @@ class MusicController:
         relative skip is computed from ``current`` (the polled position). Clamped
         at 0; the seconds are rounded to a whole number for the CLI."""
         base = (current or 0.0) if relative else 0.0
-        target = max(0, int(round(base + seconds)))
+        target = max(0, round(base + seconds))
         self._run("seek", str(target))
 
     def stop(self) -> None:

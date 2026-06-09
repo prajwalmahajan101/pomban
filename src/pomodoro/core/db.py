@@ -424,13 +424,10 @@ class DB:
 
     def project_task_counts(self, project_id: int | None) -> dict[str, int]:
         if project_id is None:
-            sql = (
-                "SELECT status, COUNT(*) AS n FROM tasks "
-                "WHERE project_id IS NULL GROUP BY status"
-            )
+            sql = "SELECT status, COUNT(*) AS n FROM tasks WHERE project_id IS NULL GROUP BY status"
             params: tuple = ()
         else:
-            sql = "SELECT status, COUNT(*) AS n FROM tasks " "WHERE project_id=? GROUP BY status"
+            sql = "SELECT status, COUNT(*) AS n FROM tasks WHERE project_id=? GROUP BY status"
             params = (project_id,)
         rows = self.conn.execute(sql, params).fetchall()
         out = {"todo": 0, "doing": 0, "done": 0}
@@ -548,8 +545,7 @@ class DB:
 
     def avg_interruptions_per_focus(self) -> float:
         row = self.conn.execute(
-            "SELECT AVG(interruption_count) AS a FROM sessions"
-            " WHERE kind='focus' AND completed=1"
+            "SELECT AVG(interruption_count) AS a FROM sessions WHERE kind='focus' AND completed=1"
         ).fetchone()
         return float(row["a"] or 0)
 

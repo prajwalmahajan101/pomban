@@ -100,7 +100,7 @@ def render_progress_bar(position, duration, *, width: int = 30, color: str = "cy
     if not dur or dur <= 0 or pos is None:
         return f"[dim]{left} / {right}[/]"
     frac = max(0.0, min(1.0, pos / dur))
-    filled = int(round(frac * width))
+    filled = round(frac * width)
     bar = "█" * filled + "─" * (width - filled)
     c = adapt(color)
     bar = f"[{c}]{bar}[/]" if c else bar

@@ -214,9 +214,7 @@ def test_parse_playlists_tolerant():
 def test_parse_playlists_strips_cliamp_column_track_count():
     # cliamp's real `playlist list` output is column-aligned: "Name      N tracks".
     out = (
-        "  Recently Played  9 tracks\n"
-        "  Liked Songs      210 tracks\n"
-        "  Violin           14 tracks\n"
+        "  Recently Played  9 tracks\n  Liked Songs      210 tracks\n  Violin           14 tracks\n"
     )
     assert music_view.parse_playlists(out) == ["Recently Played", "Liked Songs", "Violin"]
 
