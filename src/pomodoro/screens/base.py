@@ -6,7 +6,10 @@ old duck-typed loop in ``app.py`` that blind-``getattr``'d a hardcoded list of
 ~9 refresh-method names across every screen and swallowed failures. Now each
 screen declares exactly how it refreshes by overriding one typed method.
 """
+
 from __future__ import annotations
+
+import contextlib
 
 from textual.screen import Screen
 
@@ -40,7 +43,5 @@ class AppScreen(Screen):
         except Exception:
             return
         if getattr(widget, "can_focus", False) or getattr(widget, "can_focus_children", False):
-            try:
+            with contextlib.suppress(Exception):
                 widget.focus()
-            except Exception:
-                pass

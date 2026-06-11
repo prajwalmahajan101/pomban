@@ -7,6 +7,7 @@ Plugins are Python entry points under group `pomodoro.hooks` exposing callables:
 Every callback is wrapped in try/except so plugin errors never crash the app —
 they're logged to ~/.local/state/pomodoro/plugins.log.
 """
+
 from __future__ import annotations
 
 import os
@@ -87,8 +88,10 @@ def git_sync(repo_dir: Path | str) -> None:
     try:
         subprocess.Popen(
             ["sh", "-c", 'cd "$1" && git add -A && git commit -m "$2"', "_", str(repo), msg],
-            stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL,
-            stdin=subprocess.DEVNULL, start_new_session=True,
+            stdout=subprocess.DEVNULL,
+            stderr=subprocess.DEVNULL,
+            stdin=subprocess.DEVNULL,
+            start_new_session=True,
         )
     except Exception as e:
         _log(f"[git-sync-error] {e}")

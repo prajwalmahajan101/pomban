@@ -1,6 +1,3 @@
-import tempfile
-from pathlib import Path
-
 import pytest
 
 from pomodoro.app import PomodoroApp
@@ -39,8 +36,10 @@ async def test_pending_session_persists_on_exit(tmp_path):
     async with app.run_test() as pilot:
         scr = await wait_for(pilot, DashboardScreen)
         from textual.widgets import ListView
+
         lv = scr.query_one("#task-list", ListView)
-        lv.focus(); lv.index = 0
+        lv.focus()
+        lv.index = 0
         await pilot.press("enter")
         await pilot.pause()
         assert app.engine.phase == Phase.FOCUS
@@ -108,7 +107,9 @@ async def test_resume_discard_closes_session_incomplete(tmp_path):
         assert isinstance(app.screen, ResumePrompt)
         await pilot.press("n")
         await pilot.pause()
-        row = db.conn.execute("SELECT completed, ended_at FROM sessions WHERE id=?", (sid,)).fetchone()
+        row = db.conn.execute(
+            "SELECT completed, ended_at FROM sessions WHERE id=?", (sid,)
+        ).fetchone()
         assert row["completed"] == 0
         assert row["ended_at"] is not None
     db.close()

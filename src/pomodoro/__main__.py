@@ -1,3 +1,4 @@
+import contextlib
 import sys
 
 from pomodoro.app import PomodoroApp
@@ -6,6 +7,7 @@ from pomodoro.app import PomodoroApp
 def _sprint_export(args: list[str]) -> None:
     """pomban sprint export <sprint_id> — prints markdown report to stdout."""
     from pomodoro.core.db import DB
+
     if not args:
         sys.stderr.write("usage: pomban sprint export <sprint_id>\n")
         sys.exit(2)
@@ -37,7 +39,7 @@ def _sprint_export(args: list[str]) -> None:
     out.append(f"- **Target**: {sp.pomodoro_target} 🍅")
     out.append(f"- **Completed**: {bd['completed']} 🍅")
     if sp.pomodoro_target:
-        pct = 100 * bd['completed'] // sp.pomodoro_target
+        pct = 100 * bd["completed"] // sp.pomodoro_target
         out.append(f"- **Progress**: {pct}%")
     out.append("")
     out.append("## Shipped")
@@ -67,14 +69,13 @@ def main() -> None:
     if args and args[0] == "export":
         from pomodoro.core.db import DB
         from pomodoro.core.exporter import export_markdown
+
         days = 7
         for i, arg in enumerate(args):
             if arg == "--since" and i + 1 < len(args):
                 v = args[i + 1].rstrip("d")
-                try:
+                with contextlib.suppress(ValueError):
                     days = int(v)
-                except ValueError:
-                    pass
         db = DB()
         sys.stdout.write(export_markdown(db, days=days))
         sys.stdout.write("\n")

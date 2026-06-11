@@ -1,6 +1,8 @@
 """End-of-phase notifications: desktop popup, terminal bell, sound. All optional."""
+
 from __future__ import annotations
 
+import contextlib
 import shutil
 import subprocess
 from dataclasses import dataclass
@@ -15,10 +17,8 @@ class NotifyConfig:
 
 
 def _spawn(cmd: list[str]) -> None:
-    try:
+    with contextlib.suppress(FileNotFoundError, OSError):
         subprocess.Popen(cmd, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
-    except (FileNotFoundError, OSError):
-        pass
 
 
 def desktop(title: str, body: str) -> None:
@@ -51,7 +51,9 @@ def run_hook(command: str | None, env_extra: dict | None = None) -> None:
     import os
     from pathlib import Path
 
-    log_dir = Path(os.environ.get("XDG_STATE_HOME") or str(Path.home() / ".local" / "state")) / "pomodoro"
+    log_dir = (
+        Path(os.environ.get("XDG_STATE_HOME") or str(Path.home() / ".local" / "state")) / "pomodoro"
+    )
     try:
         log_dir.mkdir(parents=True, exist_ok=True)
         log_path = log_dir / "hooks.log"

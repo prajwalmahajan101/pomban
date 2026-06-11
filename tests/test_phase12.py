@@ -1,4 +1,3 @@
-import os
 import tempfile
 from pathlib import Path
 
@@ -42,6 +41,7 @@ def test_hook_writes_to_log_and_does_not_crash(tmp_path, monkeypatch):
     run_hook(f"echo hooked > {marker}", env_extra={"FOO": "bar"})
     # Give the spawned shell a moment
     import time
+
     for _ in range(30):
         if marker.exists():
             break

@@ -1,4 +1,5 @@
 """TOML config loader. Lives at $XDG_CONFIG_HOME/pomodoro/config.toml (default ~/.config/pomodoro/)."""
+
 from __future__ import annotations
 
 import os
@@ -16,8 +17,15 @@ def default_config_path() -> Path:
     return default_config_dir() / "config.toml"
 
 
-VALID_THEMES = ("nord", "gruvbox", "dracula", "catppuccin-mocha", "tokyo-night",
-                "textual-dark", "textual-light")
+VALID_THEMES = (
+    "nord",
+    "gruvbox",
+    "dracula",
+    "catppuccin-mocha",
+    "tokyo-night",
+    "textual-dark",
+    "textual-light",
+)
 
 
 @dataclass
@@ -60,7 +68,7 @@ class SyncSection:
 @dataclass
 class BreaksSection:
     lunch_minutes: int = 45
-    lunch_window_start: str = ""   # "HH:MM" — empty disables the suggestion
+    lunch_window_start: str = ""  # "HH:MM" — empty disables the suggestion
     lunch_window_end: str = ""
 
 
@@ -129,8 +137,11 @@ def load(path: Path | str | None = None) -> Config:
         cfg.kanban = KanbanSection(**_filter_kwargs(KanbanSection, raw["kanban"]))
     presets = raw.get("preset", [])
     if isinstance(presets, list):
-        cfg.presets = [Preset(**_filter_kwargs(Preset, p)) for p in presets
-                       if isinstance(p, dict) and "name" in p and "focus_minutes" in p]
+        cfg.presets = [
+            Preset(**_filter_kwargs(Preset, p))
+            for p in presets
+            if isinstance(p, dict) and "name" in p and "focus_minutes" in p
+        ]
     return cfg
 
 
@@ -138,10 +149,15 @@ def save(cfg: Config, path: Path | str | None = None) -> None:
     p = Path(path) if path else default_config_path()
     p.parent.mkdir(parents=True, exist_ok=True)
     lines: list[str] = []
-    for section_name, section in (("timer", cfg.timer), ("notifications", cfg.notifications),
-                                  ("ui", cfg.ui), ("hooks", cfg.hooks), ("sync", cfg.sync),
-                                  ("breaks", cfg.breaks),
-                                  ("kanban", cfg.kanban)):
+    for section_name, section in (
+        ("timer", cfg.timer),
+        ("notifications", cfg.notifications),
+        ("ui", cfg.ui),
+        ("hooks", cfg.hooks),
+        ("sync", cfg.sync),
+        ("breaks", cfg.breaks),
+        ("kanban", cfg.kanban),
+    ):
         lines.append(f"[{section_name}]")
         for k, v in asdict(section).items():
             lines.append(_format_kv(k, v))
@@ -159,7 +175,7 @@ def _format_kv(k: str, v) -> str:
         return f"# {k} = ..."
     if isinstance(v, bool):
         return f"{k} = {'true' if v else 'false'}"
-    if isinstance(v, (int, float)):
+    if isinstance(v, int | float):
         return f"{k} = {v}"
     return f'{k} = "{v}"'
 
@@ -167,6 +183,7 @@ def _format_kv(k: str, v) -> str:
 def to_settings(cfg: Config):
     """Build a TimerEngine Settings from this config."""
     from pomodoro.core.timer_engine import Settings
+
     return Settings(
         focus_seconds=cfg.timer.focus_minutes * 60,
         short_break_seconds=cfg.timer.short_break_minutes * 60,
@@ -178,6 +195,7 @@ def to_settings(cfg: Config):
 
 def to_notify_config(cfg: Config):
     from pomodoro.notifications import NotifyConfig
+
     return NotifyConfig(
         desktop=cfg.notifications.desktop,
         bell=cfg.notifications.bell_and_flash,

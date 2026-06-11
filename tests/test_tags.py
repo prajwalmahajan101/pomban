@@ -54,6 +54,7 @@ def test_all_tags_returns_distinct_sorted(db):
 def test_add_task_via_app_parses_inline_tags(tmp_path):
     db = DB(tmp_path / "t.db")
     from pomodoro.app import PomodoroApp
+
     app = PomodoroApp(db=db, fast=True)
     t = app.add_task_from_input("Fix bug #backend #p1")
     assert t.title == "Fix bug"
@@ -61,8 +62,8 @@ def test_add_task_via_app_parses_inline_tags(tmp_path):
 
 
 def test_card_renders_chip():
-    from pomodoro.core.models import Task
     from pomodoro.widgets.card import render_chips, tag_color
+
     out = render_chips("docs,urgent")
     assert "#docs" in out and "#urgent" in out
     # Deterministic color

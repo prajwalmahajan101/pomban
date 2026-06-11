@@ -1,4 +1,5 @@
 """Pure Pomodoro timer state machine. No UI, no I/O — testable with a fake clock."""
+
 from __future__ import annotations
 
 from dataclasses import dataclass, field
@@ -94,8 +95,7 @@ class TimerEngine:
         # Don't re-fire the "ending soon" warning if we resume already past it.
         self._warning_fired = self.remaining <= self.settings.warning_seconds
 
-    def enter_long_pause(self, seconds: int, now: float,
-                         resume_phase: Phase = Phase.FOCUS) -> None:
+    def enter_long_pause(self, seconds: int, now: float, resume_phase: Phase = Phase.FOCUS) -> None:
         """Drive the engine into an interleaved LONG_PAUSE (lunch/coffee).
 
         LONG_PAUSE doesn't consume a focus cycle. ``resume_phase`` is the phase the
@@ -108,10 +108,7 @@ class TimerEngine:
     def skip(self, now: float) -> list[Event]:
         if self.phase == Phase.IDLE:
             return []
-        if not self.awaiting_decision:
-            events = self._complete()
-        else:
-            events = []
+        events = self._complete() if not self.awaiting_decision else []
         events += self.confirm_advance(now)
         return events
 
@@ -149,10 +146,7 @@ class TimerEngine:
             return []
         self._accumulate(now)
         events: list[Event] = []
-        if (
-            not self._warning_fired
-            and 0 < self.remaining <= self.settings.warning_seconds
-        ):
+        if not self._warning_fired and 0 < self.remaining <= self.settings.warning_seconds:
             self._warning_fired = True
             events.append(Event.PHASE_ENDING_SOON)
         if self.remaining <= 0:

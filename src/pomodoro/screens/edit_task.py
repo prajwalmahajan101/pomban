@@ -7,6 +7,7 @@ Returns a dict on save, or None on cancel:
 `due_date` is ISO 'YYYY-MM-DD' or ''; `priority` is 0-3. The app layer resolves
 the project name and writes via db.update_task.
 """
+
 from __future__ import annotations
 
 from typing import Optional
@@ -45,21 +46,20 @@ class EditTaskModal(ModalScreen[Optional[dict]]):
 
     def compose(self) -> ComposeResult:
         t = self.task_data
-        with Center():
-            with Vertical():
-                yield Static("[b]Edit task[/] [dim](enter to save, esc to cancel)[/]")
-                yield Static("Title", classes="label")
-                yield Input(value=t.title, id="edit-title")
-                yield Static("Tags [dim](comma-separated)[/]", classes="label")
-                yield Input(value=(t.tags or "").replace(",", ", "), id="edit-tags")
-                yield Static("Estimate [dim](pomodoros)[/]", classes="label")
-                yield Input(value=str(t.estimated_pomodoros or 0), id="edit-estimate")
-                yield Static("Project [dim](blank = Inbox)[/]", classes="label")
-                yield Input(value=self._project_name, id="edit-project")
-                yield Static("Due date [dim](YYYY-MM-DD, blank = none)[/]", classes="label")
-                yield Input(value=t.due_date, id="edit-due", placeholder="2026-06-01")
-                yield Static("Priority [dim](0 none · 1 low · 2 med · 3 high)[/]", classes="label")
-                yield Input(value=str(t.priority or 0), id="edit-priority")
+        with Center(), Vertical():
+            yield Static("[b]Edit task[/] [dim](enter to save, esc to cancel)[/]")
+            yield Static("Title", classes="label")
+            yield Input(value=t.title, id="edit-title")
+            yield Static("Tags [dim](comma-separated)[/]", classes="label")
+            yield Input(value=(t.tags or "").replace(",", ", "), id="edit-tags")
+            yield Static("Estimate [dim](pomodoros)[/]", classes="label")
+            yield Input(value=str(t.estimated_pomodoros or 0), id="edit-estimate")
+            yield Static("Project [dim](blank = Inbox)[/]", classes="label")
+            yield Input(value=self._project_name, id="edit-project")
+            yield Static("Due date [dim](YYYY-MM-DD, blank = none)[/]", classes="label")
+            yield Input(value=t.due_date, id="edit-due", placeholder="2026-06-01")
+            yield Static("Priority [dim](0 none · 1 low · 2 med · 3 high)[/]", classes="label")
+            yield Input(value=str(t.priority or 0), id="edit-priority")
 
     def action_save(self) -> None:
         title = self.query_one("#edit-title", Input).value.strip()
@@ -79,6 +79,7 @@ class EditTaskModal(ModalScreen[Optional[dict]]):
         if due_raw:
             try:
                 from datetime import date as _date
+
                 _date.fromisoformat(due_raw)
                 due = due_raw
             except ValueError:
@@ -88,8 +89,16 @@ class EditTaskModal(ModalScreen[Optional[dict]]):
             priority = max(0, min(3, int(prio_raw))) if prio_raw else 0
         except ValueError:
             priority = self.task_data.priority or 0
-        self.dismiss({"title": title, "tags": tags, "estimate": estimate,
-                      "project": project, "due_date": due, "priority": priority})
+        self.dismiss(
+            {
+                "title": title,
+                "tags": tags,
+                "estimate": estimate,
+                "project": project,
+                "due_date": due,
+                "priority": priority,
+            }
+        )
 
     def action_cancel(self) -> None:
         self.dismiss(None)

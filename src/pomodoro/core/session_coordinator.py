@@ -5,6 +5,7 @@ just opens/closes the DB session rows, tracks the current session id and its
 wall-clock start, and answers the lunch-suggestion question. Extracted from the
 app shell so the session lifecycle is testable without Textual.
 """
+
 from __future__ import annotations
 
 import time

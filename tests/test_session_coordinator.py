@@ -17,7 +17,7 @@ def _coord(td):
 
 def test_begin_is_noop_when_idle():
     with tempfile.TemporaryDirectory() as td:
-        coord, db, eng = _coord(td)
+        coord, db, _eng = _coord(td)
         coord.begin([])  # engine is IDLE
         assert coord.current_session_id is None
         db.close()
@@ -41,7 +41,7 @@ def test_begin_then_end_focus_persists_row():
 
 def test_end_without_session_is_safe():
     with tempfile.TemporaryDirectory() as td:
-        coord, db, eng = _coord(td)
+        coord, db, _eng = _coord(td)
         coord.end(10, completed=False)  # must not raise
         assert coord.current_session_id is None
         assert coord.elapsed() == 0
@@ -50,10 +50,11 @@ def test_end_without_session_is_safe():
 
 def test_should_suggest_lunch_respects_phase_and_window():
     with tempfile.TemporaryDirectory() as td:
-        coord, db, eng = _coord(td)
+        coord, db, _eng = _coord(td)
         cfg = Config()
-        cfg.breaks = BreaksSection(lunch_minutes=45, lunch_window_start="00:00",
-                                   lunch_window_end="23:59")
+        cfg.breaks = BreaksSection(
+            lunch_minutes=45, lunch_window_start="00:00", lunch_window_end="23:59"
+        )
         assert coord.should_suggest_lunch(Phase.FOCUS, cfg) is True
         assert coord.should_suggest_lunch(Phase.SHORT_BREAK, cfg) is False
         assert coord.should_suggest_lunch(Phase.FOCUS, Config()) is False  # no window set

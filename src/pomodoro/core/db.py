@@ -1,4 +1,5 @@
 """SQLite persistence. XDG data dir, schema migrations via PRAGMA user_version."""
+
 from __future__ import annotations
 
 import os
@@ -14,8 +15,18 @@ SCHEMA_VERSION = 9
 _NO = object()
 
 # Mirrored from widgets/card.py so db doesn't import textual at module load.
-_PROJECT_COLORS = ["cyan", "green", "yellow", "magenta", "blue", "red",
-                   "bright_cyan", "bright_green", "bright_yellow", "bright_magenta"]
+_PROJECT_COLORS = [
+    "cyan",
+    "green",
+    "yellow",
+    "magenta",
+    "blue",
+    "red",
+    "bright_cyan",
+    "bright_green",
+    "bright_yellow",
+    "bright_magenta",
+]
 
 
 def _now_iso() -> str:
@@ -116,9 +127,7 @@ class DB:
             version = 3
         if version < 4:
             # Notes on tasks (Phase K1 pre-wired so we don't need another migration later).
-            self.conn.executescript(
-                "ALTER TABLE tasks ADD COLUMN notes TEXT NOT NULL DEFAULT '';"
-            )
+            self.conn.executescript("ALTER TABLE tasks ADD COLUMN notes TEXT NOT NULL DEFAULT '';")
             self.conn.execute("PRAGMA user_version = 4")
             self.conn.commit()
             version = 4
@@ -232,9 +241,16 @@ class DB:
             version = 9
 
     # ---------- tasks ----------
-    def add_task(self, title: str, tags: str = "", estimated_pomodoros: int = 0,
-                 project_id: int | None = None, sprint_id: int | None = None,
-                 due_date: str = "", priority: int = 0) -> Task:
+    def add_task(
+        self,
+        title: str,
+        tags: str = "",
+        estimated_pomodoros: int = 0,
+        project_id: int | None = None,
+        sprint_id: int | None = None,
+        due_date: str = "",
+        priority: int = 0,
+    ) -> Task:
         now = _now_iso()
         cur = self.conn.execute(
             "INSERT INTO tasks (title, status, tags, estimated_pomodoros, position,"
@@ -242,8 +258,7 @@ class DB:
             " VALUES (?, 'todo', ?, ?,"
             " COALESCE((SELECT MAX(position)+1 FROM tasks WHERE status='todo'), 0),"
             " ?, ?, ?, ?, ?, ?)",
-            (title, tags, estimated_pomodoros, project_id, sprint_id,
-             due_date, priority, now, now),
+            (title, tags, estimated_pomodoros, project_id, sprint_id, due_date, priority, now, now),
         )
         self.conn.commit()
         return self.get_task(cur.lastrowid)
@@ -252,10 +267,14 @@ class DB:
         row = self.conn.execute("SELECT * FROM tasks WHERE id=?", (task_id,)).fetchone()
         return _row_to_task(row)
 
-    def list_tasks(self, status: str | None = None, tag: str | None = None,
-                   sprint_id: int | None = None,
-                   project_filter: object = _NO,
-                   include_done: bool = False) -> list[Task]:
+    def list_tasks(
+        self,
+        status: str | None = None,
+        tag: str | None = None,
+        sprint_id: int | None = None,
+        project_filter: object = _NO,
+        include_done: bool = False,
+    ) -> list[Task]:
         """List tasks, optionally filtered.
 
         project_filter sentinel _NO: no project filter (default).
@@ -288,8 +307,11 @@ class DB:
         rows = self.conn.execute(sql, params).fetchall()
         tasks = [_row_to_task(r) for r in rows]
         if tag:
-            tasks = [t for t in tasks
-                     if tag_low in {x.strip().lower() for x in (t.tags or "").split(",") if x.strip()}]
+            tasks = [
+                t
+                for t in tasks
+                if tag_low in {x.strip().lower() for x in (t.tags or "").split(",") if x.strip()}
+            ]
         return tasks
 
     def all_tags(self) -> list[str]:
@@ -342,9 +364,11 @@ class DB:
         self.conn.execute("UPDATE tasks SET position=? WHERE id=?", (a.position, b.id))
         self.conn.commit()
 
-    def list_tasks_by_status(self, project_filter: object = _NO) -> dict[str, list[Task]]:  # noqa: B008
-        return {s: self.list_tasks(status=s, project_filter=project_filter)
-                for s in ("todo", "doing", "done")}
+    def list_tasks_by_status(self, project_filter: object = _NO) -> dict[str, list[Task]]:
+        return {
+            s: self.list_tasks(status=s, project_filter=project_filter)
+            for s in ("todo", "doing", "done")
+        }
 
     # ---------- projects ----------
     def add_project(self, name: str, color: str = "cyan") -> Project:
@@ -369,6 +393,7 @@ class DB:
         if existing:
             return existing
         from pomodoro.core.colors import stable_index
+
         c = color or _PROJECT_COLORS[stable_index(name, len(_PROJECT_COLORS))]
         return self.add_project(name, color=c)
 
@@ -385,8 +410,7 @@ class DB:
         if not fields:
             return
         cols = ", ".join(f"{k}=?" for k in fields)
-        self.conn.execute(f"UPDATE projects SET {cols} WHERE id=?",
-                          (*fields.values(), project_id))
+        self.conn.execute(f"UPDATE projects SET {cols} WHERE id=?", (*fields.values(), project_id))
         self.conn.commit()
 
     def archive_project(self, project_id: int, archived: bool = True) -> None:
@@ -394,20 +418,16 @@ class DB:
 
     def delete_project(self, project_id: int, move_tasks_to_inbox: bool = True) -> None:
         if move_tasks_to_inbox:
-            self.conn.execute(
-                "UPDATE tasks SET project_id=NULL WHERE project_id=?", (project_id,)
-            )
+            self.conn.execute("UPDATE tasks SET project_id=NULL WHERE project_id=?", (project_id,))
         self.conn.execute("DELETE FROM projects WHERE id=?", (project_id,))
         self.conn.commit()
 
     def project_task_counts(self, project_id: int | None) -> dict[str, int]:
         if project_id is None:
-            sql = ("SELECT status, COUNT(*) AS n FROM tasks "
-                   "WHERE project_id IS NULL GROUP BY status")
+            sql = "SELECT status, COUNT(*) AS n FROM tasks WHERE project_id IS NULL GROUP BY status"
             params: tuple = ()
         else:
-            sql = ("SELECT status, COUNT(*) AS n FROM tasks "
-                   "WHERE project_id=? GROUP BY status")
+            sql = "SELECT status, COUNT(*) AS n FROM tasks WHERE project_id=? GROUP BY status"
             params = (project_id,)
         rows = self.conn.execute(sql, params).fetchall()
         out = {"todo": 0, "doing": 0, "done": 0}
@@ -416,14 +436,16 @@ class DB:
         return out
 
     # ---------- sessions ----------
-    def start_session(self, kind: str, planned_seconds: int, task_ids: list[int] | None = None) -> int:
+    def start_session(
+        self, kind: str, planned_seconds: int, task_ids: list[int] | None = None
+    ) -> int:
         now = _now_iso()
         cur = self.conn.execute(
             "INSERT INTO sessions (kind, started_at, planned_seconds) VALUES (?, ?, ?)",
             (kind, now, planned_seconds),
         )
         sid = cur.lastrowid
-        for tid in (task_ids or []):
+        for tid in task_ids or []:
             self.conn.execute(
                 "INSERT INTO session_tasks (session_id, task_id) VALUES (?, ?)", (sid, tid)
             )
@@ -437,8 +459,9 @@ class DB:
         )
         self.conn.commit()
 
-    def end_session(self, session_id: int, actual_seconds: int, completed: bool,
-                    interruption_count: int = 0) -> None:
+    def end_session(
+        self, session_id: int, actual_seconds: int, completed: bool, interruption_count: int = 0
+    ) -> None:
         self.conn.execute(
             "UPDATE sessions SET ended_at=?, actual_seconds=?, completed=?, interruption_count=?"
             " WHERE id=?",
@@ -483,7 +506,9 @@ class DB:
         ).fetchone()
         return {"sessions": row["n"], "focus_seconds": row["secs"], "streak": self._streak()}
 
-    def daily_focus_minutes(self, days: int = 7, project_id: int | None = None) -> list[tuple[str, int]]:
+    def daily_focus_minutes(
+        self, days: int = 7, project_id: int | None = None
+    ) -> list[tuple[str, int]]:
         """Return [(YYYY-MM-DD, minutes), ...] for the last `days` days, oldest first."""
         if project_id is None:
             rows = self.conn.execute(
@@ -520,8 +545,7 @@ class DB:
 
     def avg_interruptions_per_focus(self) -> float:
         row = self.conn.execute(
-            "SELECT AVG(interruption_count) AS a FROM sessions"
-            " WHERE kind='focus' AND completed=1"
+            "SELECT AVG(interruption_count) AS a FROM sessions WHERE kind='focus' AND completed=1"
         ).fetchone()
         return float(row["a"] or 0)
 
@@ -590,9 +614,9 @@ class DB:
         ).fetchone()
         return int(row["n"] or 0)
 
-    def sessions_by_bucket(self, granularity: str, n_buckets: int = 14,
-                           project_id: int | None = None
-                           ) -> list[tuple[str, int, float]]:
+    def sessions_by_bucket(
+        self, granularity: str, n_buckets: int = 14, project_id: int | None = None
+    ) -> list[tuple[str, int, float]]:
         """Aggregate completed focus sessions into time buckets.
 
         granularity: 'day' | 'week' | 'month'
@@ -624,10 +648,7 @@ class DB:
             for y2, m2 in reversed(months):
                 # First and last day of month
                 first = date(y2, m2, 1)
-                if m2 == 12:
-                    next_first = date(y2 + 1, 1, 1)
-                else:
-                    next_first = date(y2, m2 + 1, 1)
+                next_first = date(y2 + 1, 1, 1) if m2 == 12 else date(y2, m2 + 1, 1)
                 last = next_first - timedelta(days=1)
                 buckets.append((first.strftime("%Y-%m"), first.isoformat(), last.isoformat()))
         else:
@@ -722,9 +743,16 @@ class DB:
         }
 
     # ---------- sprints ----------
-    def add_sprint(self, project_id: int | None, name: str, start_date: str,
-                   end_date: str, goal: str = "", pomodoro_target: int = 0,
-                   status: str = "planned") -> Sprint:
+    def add_sprint(
+        self,
+        project_id: int | None,
+        name: str,
+        start_date: str,
+        end_date: str,
+        goal: str = "",
+        pomodoro_target: int = 0,
+        status: str = "planned",
+    ) -> Sprint:
         now = _now_iso()
         cur = self.conn.execute(
             "INSERT INTO sprints (project_id, name, goal, start_date, end_date,"
@@ -757,8 +785,9 @@ class DB:
         end = (date.today() + timedelta(days=14)).isoformat()
         return self.add_sprint(project_id, name, today, end, goal="", status="planned")
 
-    def list_sprints(self, project_id: int | None = None,
-                     include_completed: bool = True) -> list[Sprint]:
+    def list_sprints(
+        self, project_id: int | None = None, include_completed: bool = True
+    ) -> list[Sprint]:
         clauses: list[str] = []
         params: list = []
         if project_id is not None:
@@ -776,8 +805,7 @@ class DB:
         if not fields:
             return
         cols = ", ".join(f"{k}=?" for k in fields)
-        self.conn.execute(f"UPDATE sprints SET {cols} WHERE id=?",
-                          (*fields.values(), sprint_id))
+        self.conn.execute(f"UPDATE sprints SET {cols} WHERE id=?", (*fields.values(), sprint_id))
         self.conn.commit()
 
     def activate_sprint(self, sprint_id: int) -> None:
@@ -830,8 +858,13 @@ class DB:
             start = date.fromisoformat(sp.start_date)
             end = date.fromisoformat(sp.end_date)
         except Exception:
-            return {"target": target, "completed": sum(per_day.values()),
-                    "days": [], "remaining_series": [], "ideal_series": []}
+            return {
+                "target": target,
+                "completed": sum(per_day.values()),
+                "days": [],
+                "remaining_series": [],
+                "ideal_series": [],
+            }
         days = []
         d = start
         while d <= end:

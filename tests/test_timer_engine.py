@@ -2,10 +2,15 @@ from pomodoro.core.timer_engine import Event, Phase, Settings, TimerEngine
 
 
 def make() -> TimerEngine:
-    return TimerEngine(settings=Settings(
-        focus_seconds=10, short_break_seconds=4, long_break_seconds=8,
-        cycles_before_long_break=4, warning_seconds=2,
-    ))
+    return TimerEngine(
+        settings=Settings(
+            focus_seconds=10,
+            short_break_seconds=4,
+            long_break_seconds=8,
+            cycles_before_long_break=4,
+            warning_seconds=2,
+        )
+    )
 
 
 def test_starts_in_idle():
@@ -222,10 +227,10 @@ def test_long_pause_resumes_saved_phase():
     # Take lunch with SHORT_BREAK as the interrupted phase (real flow: no restore()).
     e.enter_long_pause(2, now=1.0, resume_phase=Phase.SHORT_BREAK)
     assert e.phase == Phase.LONG_PAUSE
-    e.tick(5.0)               # pause elapses → completes → awaiting_decision
+    e.tick(5.0)  # pause elapses → completes → awaiting_decision
     e.confirm_advance(5.0)
-    assert e.phase == Phase.SHORT_BREAK   # resumed the break, not FOCUS
-    assert e.remaining == 4               # short_break_seconds from make()
+    assert e.phase == Phase.SHORT_BREAK  # resumed the break, not FOCUS
+    assert e.remaining == 4  # short_break_seconds from make()
 
 
 def test_long_pause_defaults_to_focus():

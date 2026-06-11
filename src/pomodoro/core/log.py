@@ -5,8 +5,10 @@ Safe to call while the TUI owns the terminal: it only ever writes to a file
 corrupt the alternate screen. Replaces scattered ``except Exception: pass`` that
 swallowed all diagnostics.
 """
+
 from __future__ import annotations
 
+import contextlib
 import logging
 import os
 from pathlib import Path
@@ -43,14 +45,10 @@ def get_logger() -> logging.Logger:
 
 def exception(msg: str, *args: object) -> None:
     """Log an exception with traceback. Never raises."""
-    try:
+    with contextlib.suppress(Exception):
         get_logger().exception(msg, *args)
-    except Exception:
-        pass
 
 
 def warning(msg: str, *args: object) -> None:
-    try:
+    with contextlib.suppress(Exception):
         get_logger().warning(msg, *args)
-    except Exception:
-        pass

@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+import contextlib
+
 from textual.app import ComposeResult
 from textual.binding import Binding
 from textual.containers import Horizontal, Vertical, VerticalScroll
@@ -8,7 +10,6 @@ from textual.widgets import Footer, Header, Input, Static
 from pomodoro.core.models import Task
 from pomodoro.screens.base import AppScreen
 from pomodoro.widgets.card import TaskCard
-
 
 COLUMNS = ("todo", "doing", "done")
 COLUMN_LABEL = {"todo": "To Do", "doing": "Doing", "done": "Done"}
@@ -129,8 +130,11 @@ class KanbanScreen(AppScreen):
         with Horizontal(id="board"):
             for status in COLUMNS:
                 with Vertical(classes="column", id=f"col-{status}"):
-                    yield Static(f"[b]{COLUMN_LABEL[status]}[/]", classes="column-title",
-                                 id=f"title-{status}")
+                    yield Static(
+                        f"[b]{COLUMN_LABEL[status]}[/]",
+                        classes="column-title",
+                        id=f"title-{status}",
+                    )
                     yield VerticalScroll(classes="column-body", id=f"body-{status}")
         yield Input(placeholder=_ADD_PLACEHOLDER, id="kanban-input")
         yield Footer()
@@ -162,8 +166,15 @@ class KanbanScreen(AppScreen):
                 pname, pcolor = _project_info(self.app, t)
                 sname = _sprint_name(self.app, t)
                 actual = self.app.db.task_actual_pomodoros(t.id)
-                body.mount(TaskCard(t, project_name=pname, project_color=pcolor,
-                                    sprint_name=sname, actual_pomodoros=actual))
+                body.mount(
+                    TaskCard(
+                        t,
+                        project_name=pname,
+                        project_color=pcolor,
+                        sprint_name=sname,
+                        actual_pomodoros=actual,
+                    )
+                )
             self._update_column_title(status, shown=len(tasks), total=total)
         # Update header to show active filter
         try:
@@ -179,11 +190,9 @@ class KanbanScreen(AppScreen):
                 tag_parts.append(f"[reverse {self.app.active_project_color()}] {label} [/]")
             if sprint_label:
                 tag_parts.append(f"[bright_yellow]▸ {sprint_label}[/]")
-            extra = "  ".join(tag_parts)
-            try:
+            "  ".join(tag_parts)
+            with contextlib.suppress(Exception):
                 self.sub_title = label or ""
-            except Exception:
-                pass
         except Exception:
             pass
         self._clamp_cursor()
@@ -223,11 +232,12 @@ class KanbanScreen(AppScreen):
     def _warn_if_over_wip(self, status: str) -> None:
         limit = self._wip_limit(status)
         if limit and self._status_total(status) > limit:
-            try:
-                self.app.notify(f"⚠ {COLUMN_LABEL[status]} over WIP limit ({limit})",
-                                severity="warning", timeout=3)
-            except Exception:
-                pass
+            with contextlib.suppress(Exception):
+                self.app.notify(
+                    f"⚠ {COLUMN_LABEL[status]} over WIP limit ({limit})",
+                    severity="warning",
+                    timeout=3,
+                )
 
     def _exit_visual(self) -> None:
         self.visual_mode = False
@@ -266,9 +276,9 @@ class KanbanScreen(AppScreen):
         if action == "complete_card":
             return True if batch else COLUMNS[self.col] != "done"  # already done
         if action == "reopen":
-            return COLUMNS[self.col] == "done"   # only Done can be reopened
+            return COLUMNS[self.col] == "done"  # only Done can be reopened
         if action == "bulk_tag":
-            return batch                          # only with a visual-mode selection
+            return batch  # only with a visual-mode selection
         return True
 
     def _paint_cursor(self) -> None:
@@ -412,14 +422,13 @@ class KanbanScreen(AppScreen):
         self.visual_mode = not self.visual_mode
         if not self.visual_mode:
             self.selected_ids.clear()
-        try:
+        with contextlib.suppress(Exception):
             self.app.notify(
                 "Visual: Space pick · H/L move · c done · d del · g tag · s focus"
-                if self.visual_mode else "Visual select off",
+                if self.visual_mode
+                else "Visual select off",
                 timeout=2,
             )
-        except Exception:
-            pass
         self._paint_cursor()
 
     def action_toggle_select(self) -> None:
@@ -481,8 +490,13 @@ class KanbanScreen(AppScreen):
                 self.refresh_board()
 
         self.app.push_screen(
-            CardDetailScreen(t, project_name=pname, project_color=pcolor,
-                             sprint_name=sname, actual_pomodoros=actual),
+            CardDetailScreen(
+                t,
+                project_name=pname,
+                project_color=pcolor,
+                sprint_name=sname,
+                actual_pomodoros=actual,
+            ),
             _after,
         )
 

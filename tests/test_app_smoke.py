@@ -70,7 +70,8 @@ async def test_focus_completion_shows_modal_and_complete_marks_done():
         async with app.run_test() as pilot:
             scr = await wait_for_dashboard(pilot)
             lv = scr.query_one("#task-list", ListView)
-            lv.focus(); lv.index = 0
+            lv.focus()
+            lv.index = 0
             await pilot.press("enter")
             await pilot.pause()
             assert app.engine.phase == Phase.FOCUS
@@ -99,7 +100,8 @@ async def test_focus_completion_extend_keeps_focus():
         async with app.run_test() as pilot:
             scr = await wait_for_dashboard(pilot)
             lv = scr.query_one("#task-list", ListView)
-            lv.focus(); lv.index = 0
+            lv.focus()
+            lv.index = 0
             await pilot.press("enter")
             await pilot.pause()
             await pilot.pause(delay=6.5)
@@ -118,6 +120,7 @@ async def test_focus_completion_extend_keeps_focus():
 @pytest.mark.asyncio
 async def test_auto_advance_skips_modal():
     from pomodoro.core.config import Config
+
     with tempfile.TemporaryDirectory() as td:
         db = DB(Path(td) / "aa.db")
         task = db.add_task("Auto task")
@@ -127,7 +130,8 @@ async def test_auto_advance_skips_modal():
         async with app.run_test() as pilot:
             scr = await wait_for_dashboard(pilot)
             lv = scr.query_one("#task-list", ListView)
-            lv.focus(); lv.index = 0
+            lv.focus()
+            lv.index = 0
             await pilot.press("enter")
             await pilot.pause()
             assert app.engine.phase == Phase.FOCUS
@@ -144,6 +148,7 @@ async def test_auto_advance_skips_modal():
 @pytest.mark.asyncio
 async def test_toggle_auto_advance_persists_to_config():
     from pomodoro.core import config as cfg_module
+
     with tempfile.TemporaryDirectory() as td:
         db = DB(Path(td) / "aa.db")
         cfgp = Path(td) / "config.toml"
@@ -157,4 +162,3 @@ async def test_toggle_auto_advance_persists_to_config():
         db.close()
         reloaded = cfg_module.load(cfgp)
         assert reloaded.timer.auto_advance is True
-

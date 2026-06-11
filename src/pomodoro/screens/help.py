@@ -6,6 +6,7 @@ active screen's bindings (app + screen + focused widget) and passes them here,
 so the overlay can never go stale and is automatically context-sensitive to the
 focused panel.
 """
+
 from __future__ import annotations
 
 from textual.app import ComposeResult

@@ -3,7 +3,6 @@ from __future__ import annotations
 from datetime import date
 
 from rich.markup import escape
-from textual.widget import Widget
 from textual.widgets import Static
 
 from pomodoro.core.colors import adapt, stable_index
@@ -35,7 +34,7 @@ def render_chips(tags: str) -> str:
 def render_project_badge(name: str | None, color: str | None) -> str:
     """Render a small colored project badge. Pass name=None for Inbox."""
     label = escape(name) if name else "Inbox"
-    c = adapt(color or ("white" if name else "white"))
+    c = adapt(color or "white")
     # `reverse` is a style, not a color, so it survives NO_COLOR on its own.
     return f"[reverse {c}] {label} [/]" if c else f"[reverse] {label} [/]"
 
@@ -78,6 +77,7 @@ def render_due(due_date: str, today: str | None = None) -> str:
 def _no_color() -> bool:
     # local import keeps the module's import surface unchanged
     from pomodoro.core.colors import no_color
+
     return no_color()
 
 
@@ -98,10 +98,14 @@ class TaskCard(Static):
     }
     """
 
-    def __init__(self, task: Task, project_name: str | None = None,
-                 project_color: str | None = None,
-                 sprint_name: str | None = None,
-                 actual_pomodoros: int = 0) -> None:
+    def __init__(
+        self,
+        task: Task,
+        project_name: str | None = None,
+        project_color: str | None = None,
+        sprint_name: str | None = None,
+        actual_pomodoros: int = 0,
+    ) -> None:
         super().__init__()
         self.task_data = task
         self.project_name = project_name

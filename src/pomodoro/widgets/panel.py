@@ -5,6 +5,7 @@ that letter focuses the pane (see ``AppScreen.action_focus_pane``). The emphasis
 uses an accent color when available and always underlines, so the hint survives
 NO_COLOR / low-color terminals (underline is a style, not a color).
 """
+
 from __future__ import annotations
 
 from rich.markup import escape
@@ -29,7 +30,7 @@ def panel_title(label: str, hotkey: str | None = None) -> str:
     idx = label.lower().find(hotkey.lower())
     if idx < 0:
         return f"[b]{escape(label)}[/]"
-    before, ch, after = label[:idx], label[idx], label[idx + 1:]
+    before, ch, after = label[:idx], label[idx], label[idx + 1 :]
     c = adapt(HOTKEY_COLOR)
     mark = f"[{c} u]{escape(ch)}[/]" if c else f"[u]{escape(ch)}[/]"
     return f"[b]{escape(before)}{mark}{escape(after)}[/]"

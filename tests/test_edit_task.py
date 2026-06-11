@@ -24,8 +24,9 @@ async def test_edit_task_round_trip():
         app = PomodoroApp(db=db, fast=True)
         async with app.run_test() as pilot:
             await wait_for_dashboard(pilot)
-            app._on_task_edited(t.id, {"title": "New title", "tags": "a,b",
-                                       "estimate": 6, "project": "proj"})
+            app._on_task_edited(
+                t.id, {"title": "New title", "tags": "a,b", "estimate": 6, "project": "proj"}
+            )
             await pilot.pause()
             row = db.get_task(t.id)
             assert row.title == "New title"
@@ -45,8 +46,7 @@ async def test_edit_task_clears_project():
         async with app.run_test() as pilot:
             await wait_for_dashboard(pilot)
             assert db.get_task(t.id).project_id == proj.id
-            app._on_task_edited(t.id, {"title": "Task", "tags": "",
-                                       "estimate": 0, "project": ""})
+            app._on_task_edited(t.id, {"title": "Task", "tags": "", "estimate": 0, "project": ""})
             await pilot.pause()
             assert db.get_task(t.id).project_id is None
         db.close()

@@ -16,7 +16,9 @@ async def wait_for(pilot, screen_cls):
         await pilot.pause()
         if isinstance(pilot.app.screen, screen_cls):
             return pilot.app.screen
-    raise AssertionError(f"Screen {screen_cls.__name__} never became active: {type(pilot.app.screen)}")
+    raise AssertionError(
+        f"Screen {screen_cls.__name__} never became active: {type(pilot.app.screen)}"
+    )
 
 
 @pytest.mark.asyncio
@@ -37,7 +39,7 @@ async def test_switch_to_kanban_and_back():
 async def test_kanban_renders_three_columns_with_counts():
     with tempfile.TemporaryDirectory() as td:
         db = DB(Path(td) / "k.db")
-        a = db.add_task("Aaa")
+        db.add_task("Aaa")
         b = db.add_task("Bbb")
         db.move_task(b.id, "doing")
         app = PomodoroApp(db=db, fast=True)

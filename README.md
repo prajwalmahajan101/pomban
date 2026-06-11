@@ -1,5 +1,7 @@
 # Pomodoro Dashboard TUI
 
+[![test](https://github.com/prajwalmahajan101/pomban/actions/workflows/test.yml/badge.svg?branch=main)](https://github.com/prajwalmahajan101/pomban/actions/workflows/test.yml)
+
 A keyboard-driven Pomodoro timer with Kanban board, stats, themes, hooks, and plugins. Built with [Textual](https://textual.textualize.io/).
 
 ```

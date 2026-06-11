@@ -1,16 +1,26 @@
 from __future__ import annotations
 
+import contextlib
+
 from textual.app import ComposeResult
 from textual.binding import Binding
-from textual.containers import Vertical
-from pomodoro.screens.base import AppScreen
 from textual.widgets import DataTable, Footer, Header, Input, Static
 
-from pomodoro.core.models import Project
+from pomodoro.screens.base import AppScreen
 
-
-COLOR_CYCLE = ["cyan", "green", "yellow", "magenta", "blue", "red",
-               "bright_cyan", "bright_green", "bright_yellow", "bright_magenta", "white"]
+COLOR_CYCLE = [
+    "cyan",
+    "green",
+    "yellow",
+    "magenta",
+    "blue",
+    "red",
+    "bright_cyan",
+    "bright_green",
+    "bright_yellow",
+    "bright_magenta",
+    "white",
+]
 
 
 class ProjectsScreen(AppScreen):
@@ -41,13 +51,15 @@ class ProjectsScreen(AppScreen):
 
     def __init__(self) -> None:
         super().__init__()
-        self._mode: str | None = None   # None | "new" | "rename"
+        self._mode: str | None = None  # None | "new" | "rename"
         self._target_id: int | None = None
 
     def compose(self) -> ComposeResult:
         yield Header(show_clock=True)
-        yield Static("[b]Projects[/]  [dim]n=new  r=rename  c=recolor  a=archive  d=delete  enter=filter[/]",
-                     id="proj-help")
+        yield Static(
+            "[b]Projects[/]  [dim]n=new  r=rename  c=recolor  a=archive  d=delete  enter=filter[/]",
+            id="proj-help",
+        )
         yield DataTable(id="proj-table", cursor_type="row")
         yield Input(placeholder="(press n to add or r to rename)", id="proj-input")
         yield Footer()
@@ -136,10 +148,8 @@ class ProjectsScreen(AppScreen):
         new_color = COLOR_CYCLE[(idx + 1) % len(COLOR_CYCLE)]
         self.app.db.update_project(pid, color=new_color)
         self.refresh_projects()
-        try:
+        with contextlib.suppress(Exception):
             self.notify(f"{p.name} → {new_color}", timeout=2)
-        except Exception:
-            pass
 
     def action_archive(self) -> None:
         pid = self._selected_project_id()
@@ -177,15 +187,14 @@ class ProjectsScreen(AppScreen):
                 return
             if row_key == "inbox":
                 from pomodoro.core.filters import ProjectFilter
+
                 self.app.set_project_filter(ProjectFilter.inbox())
             else:
                 return
         else:
             self.app.set_active_project(pid)
-        try:
+        with contextlib.suppress(Exception):
             self.app.switch_screen("kanban")
-        except Exception:
-            pass
 
     def action_blur_input(self) -> None:
         self._mode = None
@@ -209,9 +218,7 @@ class ProjectsScreen(AppScreen):
             try:
                 self.app.db.update_project(self._target_id, name=text)
             except Exception as e:
-                try:
+                with contextlib.suppress(Exception):
                     self.notify(f"Rename failed: {e}", timeout=3, severity="error")
-                except Exception:
-                    pass
         self.action_blur_input()
         self.refresh_projects()

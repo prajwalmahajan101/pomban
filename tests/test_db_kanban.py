@@ -43,7 +43,7 @@ def test_swap_positions_reorders(db):
 
 def test_list_tasks_by_status_groups_correctly(db):
     a = db.add_task("A")
-    b = db.add_task("B")
+    db.add_task("B")
     db.move_task(a.id, "doing")
     groups = db.list_tasks_by_status()
     assert [t.title for t in groups["todo"]] == ["B"]

@@ -6,7 +6,6 @@ from textual.widgets import Static
 
 from pomodoro.core.timer_engine import Phase
 
-
 PHASE_LABEL = {
     Phase.IDLE: "Idle — press [b]s[/b] to start",
     Phase.FOCUS: "FOCUS",
@@ -55,14 +54,12 @@ class TimerDisplay(Static):
             chips = []
             for i, name in enumerate(self.active_tasks):
                 nm = escape(name)
-                chips.append(f"[reverse] {nm} [/]" if i == self.active_index
-                             else f"[dim] {nm} [/]")
+                chips.append(f"[reverse] {nm} [/]" if i == self.active_index else f"[dim] {nm} [/]")
             task_line = "[dim]on:[/dim] " + " · ".join(chips) + "  [dim](Tab)[/]"
         else:
-            task_line = f"[dim]on:[/dim] [b]{escape(self.active_task)}[/b]" if self.active_task else ""
+            task_line = (
+                f"[dim]on:[/dim] [b]{escape(self.active_task)}[/b]" if self.active_task else ""
+            )
         return (
-            f"[{color}]{label}[/]\n\n"
-            f"[bold]{time_str}[/]\n\n"
-            f"{dots}   [dim]{state}[/]\n"
-            f"{task_line}"
+            f"[{color}]{label}[/]\n\n[bold]{time_str}[/]\n\n{dots}   [dim]{state}[/]\n{task_line}"
         )

@@ -1,6 +1,3 @@
-import tempfile
-from pathlib import Path
-
 from pomodoro.core import config as cfg_mod
 from pomodoro.core.config import Config, Preset, load, save
 
