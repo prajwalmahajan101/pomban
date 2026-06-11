@@ -80,15 +80,10 @@ class PomodoroApp(App):
             notify_cfg = cfg_module.to_notify_config(self.config)
         self.engine = TimerEngine(settings=settings)
         self.notify_cfg = notify_cfg
-        # Multi-task focus: active_tasks is the source of truth; active_task is a
-        # back-compat property (active_tasks[0]). active_chip_index drives the
-        # cosmetic chip highlight on the Dashboard timer.
-        self.active_tasks: list[Task] = []
-        self.active_chip_index: int = 0
         self.coord = SessionCoordinator(self.engine, self.db, self.sessions)
-        # PombanEngine facade wraps timer + sessions + coord behind a UI-agnostic
-        # surface. Introduced incrementally — for now only the tick loop reads
-        # from it; the rest of app.py still calls self.engine.* directly.
+        # PombanEngine facade owns the active-task set, wraps the timer / sessions
+        # / coord, and exposes a UI-agnostic surface the app shell drives. Active
+        # tasks live on the facade; app.py reads them via the shim properties below.
         self._facade = PombanEngine(
             db=self.db,
             sessions=self.sessions,
@@ -103,13 +98,32 @@ class PomodoroApp(App):
             self._theme_idx = 0
         self._pending_actual_seconds = 0
 
+    # Multi-task focus state lives on the PombanEngine facade; the properties
+    # below preserve the existing app.active_task* surface (used by screens and
+    # tests) without duplicating the source of truth.
+    @property
+    def active_tasks(self) -> list[Task]:
+        return self._facade.active_tasks
+
+    @active_tasks.setter
+    def active_tasks(self, tasks: list[Task]) -> None:
+        self._facade.active_tasks = tasks
+
+    @property
+    def active_chip_index(self) -> int:
+        return self._facade.active_chip_index
+
+    @active_chip_index.setter
+    def active_chip_index(self, idx: int) -> None:
+        self._facade.active_chip_index = idx
+
     @property
     def active_task(self) -> Task | None:
-        return self.active_tasks[0] if self.active_tasks else None
+        return self._facade.active_task
 
     @active_task.setter
     def active_task(self, task: Task | None) -> None:
-        self.active_tasks = [task] if task else []
+        self._facade.active_task = task
 
     # Session bookkeeping lives in self.coord; expose the two fields as properties
     # so existing call sites (and tests) keep using app.current_session_id /
