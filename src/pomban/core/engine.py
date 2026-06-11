@@ -18,6 +18,7 @@ active-task state out of ``app.py`` and into here.
 
 from __future__ import annotations
 
+import time
 from dataclasses import dataclass, field
 
 from pomban.core import log
@@ -184,6 +185,58 @@ class PombanEngine:
                 log.exception(
                     "plugin dispatch failed (phase=%s starting=%s)", phase.value, starting
                 )
+
+
+    # ---------- session lifecycle ----------
+    def log_new_session(self) -> None:
+        """Open a DB session row for the timer's current phase and fire start hooks.
+
+        Idle phase = nothing to log. For non-FOCUS phases (breaks, long pause)
+        we still record the session but with no associated tasks.
+        """
+        if self.timer.phase == Phase.IDLE:
+            return
+        self.fire_phase_hooks(starting=True, phase=self.timer.phase)
+        task_ids = (
+            [t.id for t in self.active_tasks] if self.timer.phase == Phase.FOCUS else []
+        )
+        self.coord.begin(task_ids)
+
+    def start_focus_on_many(self, tasks: list[Task]) -> bool:
+        """Begin a focus session over one or more tasks.
+
+        Marks any todo tasks as doing, resets+starts the timer, and opens the
+        session row. Returns True if the app shell should switch to the
+        Dashboard so the timer is visible (false when no tasks were supplied).
+        """
+        if not tasks:
+            return False
+        self.active_tasks = list(tasks)
+        self.active_chip_index = 0
+        for t in tasks:
+            if t.status == "todo":
+                self.db.set_task_status(t.id, "doing")
+        self.timer.reset()
+        self.timer.start(time.monotonic())
+        self.log_new_session()
+        return True
+
+    def finalize_multi_complete(
+        self, sid: int | None, actual: int, ids: list[int] | None
+    ) -> None:
+        """Close a multi-task focus session and mark the indicated tasks done."""
+        ids = ids or []
+        if sid is not None:
+            self.sessions.end(sid, actual_seconds=actual, completed=True)
+        self.current_session_id = None
+        self.session_start_monotonic = None
+        done = set(ids)
+        for tid in done:
+            self.db.set_task_status(tid, "done")
+        # Completed tasks leave the active set; the rest stay in Doing.
+        self.active_tasks = [t for t in self.active_tasks if t.id not in done]
+        self.timer.confirm_advance(time.monotonic())
+        self.log_new_session()
 
 
 __all__ = [
