@@ -9,7 +9,7 @@ from pathlib import Path
 
 from pomban.core.models import Project, Sprint, Task
 
-SCHEMA_VERSION = 9
+SCHEMA_VERSION = 10
 
 # Sentinel: distinguishes "no project filter" from "Inbox only" (project_id IS NULL).
 _NO = object()
@@ -236,9 +236,19 @@ class DB:
                 ALTER TABLE tasks ADD COLUMN priority INTEGER NOT NULL DEFAULT 0;
                 """
             )
-            self.conn.execute(f"PRAGMA user_version = {SCHEMA_VERSION}")
+            # Literal 9 (not SCHEMA_VERSION) so each block is atomic: a later
+            # block crashing can't leave this one marked done.
+            self.conn.execute("PRAGMA user_version = 9")
             self.conn.commit()
             version = 9
+        if version < 10:
+            # Free-form notes captured at end-of-session for the session-end UI.
+            self.conn.execute(
+                "ALTER TABLE sessions ADD COLUMN notes TEXT NOT NULL DEFAULT ''"
+            )
+            self.conn.execute("PRAGMA user_version = 10")
+            self.conn.commit()
+            version = 10
 
     # ---------- tasks ----------
     def add_task(
