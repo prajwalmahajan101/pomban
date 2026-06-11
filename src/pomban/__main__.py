@@ -1,7 +1,11 @@
 import contextlib
 import sys
 
-from pomban.app import PomodoroApp
+from pomban._migrate_xdg import migrate as _migrate_xdg
+
+_migrate_xdg()
+
+from pomban.app import PomodoroApp  # noqa: E402
 
 
 def _sprint_export(args: list[str]) -> None:
