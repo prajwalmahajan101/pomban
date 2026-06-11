@@ -68,6 +68,16 @@ for the commit-by-commit breakdown).
   every `AppScreen`, sprint-aware Dashboard + timer chip, Kanban
   reframed as sprint/project/all-tasks board, project required on
   task creation (picker fallback).
+- **M2.5 — Engine / presenter decoupling.** Extract a
+  `PombanEngine` facade in `core/engine.py` that owns the
+  long-lived domain objects (DB, `TimerEngine`,
+  `SessionCoordinator`, `FilterState`, `Settings`) and exposes a
+  stable command surface returning typed outcomes
+  (`Created(task)` / `NeedsProject(text)` / etc.). `PomodoroApp`
+  shrinks to a thin Textual presenter (bindings, modals,
+  `notify`, screen routing). Inserted before M3 so the four new
+  M3 screens land on the new facade from day one. No
+  user-visible change.
 - **M3 — Sprint lifecycle UX.** First-run project modal, sprint
   runner overlay (`Shift+R`), sprint-completion modal at target,
   inline `s` "new sprint" on the Projects screen.
