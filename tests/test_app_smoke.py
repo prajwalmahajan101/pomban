@@ -55,6 +55,9 @@ async def test_add_task_via_input():
                 await pilot.press(ch if ch != " " else "space")
             await pilot.press("enter")
             await pilot.pause()
+            # A3: with no project context, the picker fires; pick Inbox.
+            app.screen.dismiss(0)
+            await pilot.pause()
             tasks = db.list_tasks()
             assert len(tasks) == 1
             assert tasks[0].title == "Test task"

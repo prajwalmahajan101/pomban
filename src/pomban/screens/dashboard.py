@@ -6,7 +6,7 @@ from rich.markup import escape
 from textual.app import ComposeResult
 from textual.binding import Binding
 from textual.containers import Horizontal, Vertical
-from textual.widgets import Footer, Header, Input, ListItem, ListView, Static
+from textual.widgets import Footer, Input, ListItem, ListView, Static
 
 from pomban.core.models import Task
 from pomban.screens.base import AppScreen
@@ -86,14 +86,16 @@ class DashboardScreen(AppScreen):
     ]
 
     def compose(self) -> ComposeResult:
-        yield Header(show_clock=True)
+        yield from self.compose_header()
         yield StatsStrip(id="stats")
         with Horizontal(id="main"):
             with Vertical(id="timer-pane"):
                 yield Static(panel_title("Timer", "i"), classes="pane-title")
                 yield TimerDisplay(id="timer")
             with Vertical(id="task-pane"):
-                yield Static(panel_title("Tasks", "a"), classes="pane-title")
+                yield Static(
+                    panel_title("Tasks", "a"), id="task-pane-title", classes="pane-title"
+                )
                 yield ListView(id="task-list")
                 yield Input(placeholder="Add a task — use #tag inline", id="task-input")
         yield Footer()
@@ -106,6 +108,7 @@ class DashboardScreen(AppScreen):
         self.query_one("#task-list", ListView).focus()
 
     def refresh_view(self) -> None:
+        super().refresh_view()
         self.refresh_tasks()
         self.refresh_stats()
         self.refresh_timer()
@@ -121,8 +124,32 @@ class DashboardScreen(AppScreen):
         td.active_task = self.app.active_task.title if self.app.active_task else ""
         td.active_tasks = [t.title for t in self.app.active_tasks]
         td.active_index = self.app.active_chip_index
+        td.sprint_chip = self._sprint_chip_text()
+
+    def _sprint_chip_text(self) -> str:
+        sid = self.app.active_sprint_id
+        if sid is None:
+            return ""
+        try:
+            sp = self.app.db.get_sprint(sid)
+            prog = self.app.db.sprint_progress(sid)
+        except Exception:
+            return ""
+        target = prog["target"]
+        if target <= 0:
+            return f"Sprint: {sp.name}"
+        return f"Sprint: {sp.name} ({prog['completed']}/{target})"
+
+    def _task_pane_title(self) -> str:
+        if self.app.active_sprint_id is not None:
+            return panel_title("Sprint queue", "a")
+        if self.app.project_filter.scoped_project_id is not None:
+            return panel_title("Project queue", "a")
+        return panel_title("All tasks", "a")
 
     def refresh_tasks(self) -> None:
+        with contextlib.suppress(Exception):
+            self.query_one("#task-pane-title", Static).update(self._task_pane_title())
         lv = self.query_one("#task-list", ListView)
         lv.clear()
         pf = self.app.project_filter_for_db()
@@ -179,9 +206,11 @@ class DashboardScreen(AppScreen):
         title = event.value.strip()
         if not title:
             return
-        self.app.add_task_from_input(title)
         event.input.value = ""
-        self.query_one("#task-list", ListView).focus()
+        self.app.submit_new_task(
+            title,
+            on_created=lambda _t: self.query_one("#task-list", ListView).focus(),
+        )
 
     def selected_task(self) -> Task | None:
         lv = self.query_one("#task-list", ListView)

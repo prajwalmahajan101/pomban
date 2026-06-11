@@ -12,15 +12,38 @@ from __future__ import annotations
 import contextlib
 
 from textual.screen import Screen
+from textual.widgets import Header
+
+from pomban.widgets.context_header import ContextHeader
 
 
 class AppScreen(Screen):
+    def compose_header(self):
+        """Yield the standard top-of-screen widgets: clock Header + ContextHeader.
+
+        Every concrete screen's ``compose`` should ``yield from
+        self.compose_header()`` instead of yielding ``Header`` directly, so the
+        Project · Sprint progress strip stays uniform.
+        """
+        yield Header(show_clock=True)
+        yield ContextHeader(id="context-header")
+
+    def _refresh_context_header(self) -> None:
+        try:
+            ch = self.query_one("#context-header", ContextHeader)
+        except Exception:
+            return
+        with contextlib.suppress(Exception):
+            ch.refresh_from_app(self.app)
+
     def refresh_view(self) -> None:
         """Re-render this screen from the current app/db state.
 
-        Overridden by each concrete screen. The base is a no-op so a screen that
-        needs no refresh (or hasn't been mounted yet) is safe to call.
+        Overridden by each concrete screen. Concrete overrides should call
+        ``self._refresh_context_header()`` (or rely on ``super().refresh_view()``)
+        so the persistent strip stays in sync with the active filter.
         """
+        self._refresh_context_header()
 
     def refresh_timer(self) -> None:
         """Re-render only the timer-dependent parts of this screen.
