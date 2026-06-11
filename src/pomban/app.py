@@ -1,0 +1,768 @@
+from __future__ import annotations
+
+import contextlib
+import time
+
+from textual.app import App
+from textual.binding import Binding
+
+from pomban.core import config as cfg_module
+from pomban.core import log
+from pomban.core.config import Config
+from pomban.core.config import save as save_config
+from pomban.core.db import DB
+from pomban.core.filter_state import FilterState
+from pomban.core.filters import ProjectFilter
+from pomban.core.models import Task
+from pomban.core.session_coordinator import SessionCoordinator
+from pomban.core.session_service import SessionService
+from pomban.core.timer_engine import Event, Phase, Settings, TimerEngine
+from pomban.notifications import NotifyConfig, fire, run_hook
+from pomban.plugins import git_sync
+from pomban.plugins import registry as plugin_registry
+from pomban.screens.base import AppScreen
+from pomban.screens.dashboard import DashboardScreen
+from pomban.screens.help import HelpScreen
+from pomban.screens.history import HistoryScreen
+from pomban.screens.kanban import KanbanScreen
+from pomban.screens.presets import PresetPicker
+from pomban.screens.resume import ResumePrompt
+from pomban.screens.session_end import SessionEndScreen
+from pomban.screens.stats import StatsScreen
+
+THEMES = ["nord", "gruvbox", "dracula", "catppuccin-mocha"]
+
+
+class PomodoroApp(App):
+    SCREENS = {}  # registered in __init__ so we can pass per-instance state
+
+    # Responsive: Textual auto-applies the class to each screen by width.
+    # < 90 cols → "-narrow" (panes stack); >= 90 → "-wide".
+    HORIZONTAL_BREAKPOINTS = [(0, "-narrow"), (90, "-wide")]
+
+    BINDINGS = [
+        Binding("q", "quit", "Quit", show=False),
+        Binding("p", "pick_preset", "Preset", show=False),
+        Binding("P,shift+p", "pick_project", "Project", show=False),
+        Binding("L,shift+l", "lunch_break", "Lunch", show=False),
+        Binding("F,shift+f", "pick_sprint", "Sprint", show=False),
+        Binding("T,shift+t", "toggle_auto_advance", "Auto-advance", show=False),
+    ]
+
+    def __init__(
+        self,
+        db: DB | None = None,
+        fast: bool = False,
+        settings: Settings | None = None,
+        notify_cfg: NotifyConfig | None = None,
+        config: Config | None = None,
+        config_path=None,
+    ) -> None:
+        super().__init__()
+        self.config = config or cfg_module.load(config_path)
+        self.config_path = config_path
+        self.db = db or DB()
+        self.sessions = SessionService(self.db)
+        if settings is None:
+            settings = (
+                Settings(
+                    focus_seconds=5,
+                    short_break_seconds=3,
+                    long_break_seconds=4,
+                    cycles_before_long_break=4,
+                    warning_seconds=2,
+                )
+                if fast
+                else cfg_module.to_settings(self.config)
+            )
+        if notify_cfg is None:
+            notify_cfg = cfg_module.to_notify_config(self.config)
+        self.engine = TimerEngine(settings=settings)
+        self.notify_cfg = notify_cfg
+        # Multi-task focus: active_tasks is the source of truth; active_task is a
+        # back-compat property (active_tasks[0]). active_chip_index drives the
+        # cosmetic chip highlight on the Dashboard timer.
+        self.active_tasks: list[Task] = []
+        self.active_chip_index: int = 0
+        self.coord = SessionCoordinator(self.engine, self.db, self.sessions)
+        # Filters persisted in config_kv: ui.active_project / ui.active_sprint
+        self.filters = FilterState(self.db)
+        try:
+            self._theme_idx = THEMES.index(self.config.ui.theme)
+        except ValueError:
+            self._theme_idx = 0
+        self._pending_actual_seconds = 0
+
+    @property
+    def active_task(self) -> Task | None:
+        return self.active_tasks[0] if self.active_tasks else None
+
+    @active_task.setter
+    def active_task(self, task: Task | None) -> None:
+        self.active_tasks = [task] if task else []
+
+    # Session bookkeeping lives in self.coord; expose the two fields as properties
+    # so existing call sites (and tests) keep using app.current_session_id /
+    # app.session_start_monotonic unchanged.
+    @property
+    def current_session_id(self) -> int | None:
+        return self.coord.current_session_id
+
+    @current_session_id.setter
+    def current_session_id(self, value: int | None) -> None:
+        self.coord.current_session_id = value
+
+    @property
+    def session_start_monotonic(self) -> float | None:
+        return self.coord.session_start_monotonic
+
+    @session_start_monotonic.setter
+    def session_start_monotonic(self, value: float | None) -> None:
+        self.coord.session_start_monotonic = value
+
+    def on_mount(self) -> None:
+        from pomban.screens.projects import ProjectsScreen
+        from pomban.screens.sprints import SprintsScreen
+
+        self.install_screen(DashboardScreen(), name="dashboard")
+        self.install_screen(KanbanScreen(), name="kanban")
+        self.install_screen(StatsScreen(), name="stats")
+        self.install_screen(HistoryScreen(), name="history")
+        self.install_screen(ProjectsScreen(), name="projects")
+        self.install_screen(SprintsScreen(), name="sprints")
+        self.push_screen("dashboard")
+        plugin_registry().discover()
+        self._maybe_prompt_resume()
+        self.set_interval(0.25, self._tick)
+        with contextlib.suppress(Exception):
+            self.theme = THEMES[self._theme_idx]
+
+    # ---------- ticking ----------
+    def _tick(self) -> None:
+        if not self.engine.running:
+            return
+        events = self.engine.tick(time.monotonic())
+        if events:
+            self._handle_events(events)
+        self._refresh_active_screen_timer()
+
+    def _refresh_active_screen_timer(self) -> None:
+        try:
+            scr = self.screen
+        except Exception:
+            return
+        if isinstance(scr, AppScreen):
+            try:
+                scr.refresh_timer()
+            except Exception:
+                log.exception("refresh_timer failed on %s", type(scr).__name__)
+
+    def _refresh_all(self) -> None:
+        try:
+            scr = self.screen
+        except Exception:
+            return
+        if isinstance(scr, AppScreen):
+            try:
+                scr.refresh_view()
+            except Exception:
+                log.exception("refresh_view failed on %s", type(scr).__name__)
+
+    def _handle_events(self, events: list[Event]) -> None:
+        if Event.PHASE_ENDING_SOON in events:
+            self._on_ending_soon()
+        if Event.PHASE_COMPLETED in events:
+            self._on_phase_completed()
+
+    def _on_ending_soon(self) -> None:
+        with contextlib.suppress(Exception):
+            self.bell()
+        with contextlib.suppress(Exception):
+            self.notify(
+                f"{self.engine.settings.warning_seconds}s left on {self.engine.phase.value}",
+                timeout=3,
+            )
+
+    def _on_phase_completed(self) -> None:
+        actual = 0
+        if self.session_start_monotonic is not None:
+            actual = int(time.monotonic() - self.session_start_monotonic)
+        completed_phase = self.engine.phase
+        task_title = self.active_task.title if self.active_task else None
+        self._pending_actual_seconds = actual
+        self._fire_phase_hooks(starting=False, phase=completed_phase)
+        self._notify_phase_change(completed_phase)
+        if self.config.timer.auto_advance:
+            # Classic Pomodoro flow: advance straight to the next phase, no modal.
+            # The session ended naturally (completed), but we do NOT mark the active
+            # task(s) done — timer expiry isn't completion intent; they stay in Doing.
+            self.coord.end(actual, completed=True)
+            self.engine.confirm_advance(time.monotonic())
+            self._log_new_session()
+            self._refresh_all()
+            return
+        suggest_lunch = self._should_suggest_lunch(completed_phase)
+        lunch_minutes = getattr(self.config, "breaks", None)
+        lunch_minutes = lunch_minutes.lunch_minutes if lunch_minutes else 45
+        multi_tasks = list(self.active_tasks) if len(self.active_tasks) > 1 else None
+        screen = SessionEndScreen(
+            completed_phase=completed_phase,
+            task_title=task_title,
+            suggest_lunch=suggest_lunch,
+            lunch_minutes=lunch_minutes,
+            multi_tasks=multi_tasks,
+        )
+        # Defer the modal push so the 0.25s tick callback returns immediately instead
+        # of mounting a screen synchronously inside the timer loop. Capture the session
+        # id now and guard the push: if a global action (e.g. Shift+L lunch, reset,
+        # skip) changed the session in the gap before this runs, the modal is stale —
+        # skip it so its callback can't end/mis-attribute the wrong session.
+        sid_at_completion = self.current_session_id
+
+        def _present_session_end() -> None:
+            if self.current_session_id != sid_at_completion:
+                return
+            self.push_screen(screen, self._on_session_end_result)
+
+        self.call_after_refresh(_present_session_end)
+        self._refresh_active_screen_timer()
+
+    def _should_suggest_lunch(self, completed_phase: Phase) -> bool:
+        return self.coord.should_suggest_lunch(completed_phase, self.config)
+
+    def _on_session_end_result(self, result: dict | None) -> None:
+        actual = self._pending_actual_seconds
+        sid = self.current_session_id
+        if result is None:
+            return
+        action = result.get("action")
+        if action == "extend":
+            extra = int(result.get("seconds", 0))
+            if sid is not None and extra > 0:
+                self.sessions.extend_planned(sid, extra)
+            self.engine.extend(extra, time.monotonic())
+            self._refresh_all()
+            return
+        if action == "lunch":
+            # Close the current session as completed (focus ended naturally) then start lunch.
+            if sid is not None:
+                self.sessions.end(sid, actual_seconds=actual, completed=True)
+            self.current_session_id = None
+            self.session_start_monotonic = None
+            self.engine.confirm_advance(time.monotonic())  # advance state machine
+            # Now drop into LONG_PAUSE.
+            breaks = getattr(self.config, "breaks", None)
+            minutes = breaks.lunch_minutes if breaks else 45
+            self._start_long_pause(minutes * 60, label="lunch")
+            return
+        if action == "complete_multi":
+            # Multi-task session: ask which of the active tasks are done.
+            from pomban.screens.session_end import MultiCompleteModal
+
+            tasks = list(self.active_tasks)
+            self.push_screen(
+                MultiCompleteModal(tasks),
+                lambda ids: self._finalize_multi_complete(sid, actual, ids),
+            )
+            return
+        completed_flag = action == "complete"
+        if sid is not None:
+            self.sessions.end(sid, actual_seconds=actual, completed=completed_flag)
+        self.current_session_id = None
+        self.session_start_monotonic = None
+        if action == "complete" and self.active_task is not None:
+            self.db.set_task_status(self.active_task.id, "done")
+            self.active_task = None
+        self.engine.confirm_advance(time.monotonic())
+        self._log_new_session()
+        self._refresh_all()
+
+    def _finalize_multi_complete(self, sid: int | None, actual: int, ids: list[int] | None) -> None:
+        ids = ids or []
+        if sid is not None:
+            self.sessions.end(sid, actual_seconds=actual, completed=True)
+        self.current_session_id = None
+        self.session_start_monotonic = None
+        done = set(ids)
+        for tid in done:
+            self.db.set_task_status(tid, "done")
+        # Completed tasks leave the active set; the rest stay in Doing.
+        self.active_tasks = [t for t in self.active_tasks if t.id not in done]
+        self.engine.confirm_advance(time.monotonic())
+        self._log_new_session()
+        self._refresh_all()
+
+    def _notify_phase_change(self, completed_phase: Phase) -> None:
+        if completed_phase == Phase.FOCUS:
+            title, body = "Focus done", "Mark task done or extend."
+        elif completed_phase == Phase.SHORT_BREAK:
+            title, body = "Break over", "Ready for the next focus."
+        elif completed_phase == Phase.LONG_BREAK:
+            title, body = "Long break over", "Ready for the next round."
+        elif completed_phase == Phase.LONG_PAUSE:
+            title, body = "Pause over", "Welcome back. Ready to focus?"
+        else:
+            return
+        fire(title, body, self.notify_cfg)
+        if self.notify_cfg.bell:
+            try:
+                self.bell()
+                self.screen.styles.animate("opacity", 0.5, duration=0.1, on_complete=self._unflash)
+            except Exception:
+                pass
+
+    def _unflash(self) -> None:
+        with contextlib.suppress(Exception):
+            self.screen.styles.animate("opacity", 1.0, duration=0.2)
+
+    def _fire_phase_hooks(self, starting: bool, phase: Phase) -> None:
+        hooks = self.config.hooks
+        task_title = self.active_task.title if self.active_task else ""
+        env = {
+            "POMODORO_PHASE": phase.value,
+            "POMODORO_TASK_TITLE": task_title,
+            "POMODORO_EVENT": "start" if starting else "end",
+        }
+        if phase == Phase.FOCUS:
+            cmd = hooks.on_focus_start if starting else hooks.on_focus_end
+        else:
+            cmd = hooks.on_break_start if starting else hooks.on_break_end
+        run_hook(cmd, env)
+        # In-process plugins (F19)
+        reg = plugin_registry()
+        if starting:
+            reg.fire("on_phase_started", phase.value, task_title or None)
+        else:
+            reg.fire("on_phase_completed", phase.value, task_title or None, True)
+
+    def _log_new_session(self) -> None:
+        if self.engine.phase == Phase.IDLE:
+            return
+        self._fire_phase_hooks(starting=True, phase=self.engine.phase)
+        task_ids = [t.id for t in self.active_tasks] if self.engine.phase == Phase.FOCUS else []
+        self.coord.begin(task_ids)
+
+    # ---------- public API used by screens ----------
+    def start_focus_on(self, task: Task) -> None:
+        self.start_focus_on_many([task])
+
+    def start_focus_on_many(self, tasks: list[Task]) -> None:
+        """Start one focus session covering one or more tasks (Mode B)."""
+        if not tasks:
+            return
+        self.active_tasks = list(tasks)
+        self.active_chip_index = 0
+        for t in tasks:
+            if t.status == "todo":
+                self.db.set_task_status(t.id, "doing")
+        self.engine.reset()
+        self.engine.start(time.monotonic())
+        self._log_new_session()
+        # If we're on Kanban, jump to Dashboard so the timer is visible.
+        if self.screen.__class__.__name__ != "DashboardScreen":
+            with contextlib.suppress(Exception):
+                self.switch_screen("dashboard")
+        self._refresh_all()
+
+    def add_task_from_input(self, text: str) -> Task:
+        """Create a task from the inline-metadata mini-syntax.
+
+        Parsing lives in the pure ``core.task_input.parse_task_input``; this method
+        resolves project/sprint names to ids and applies the active-filter defaults:
+        a real project filter sets the project; the active sprint is inherited only
+        when the user didn't type an explicit ``@project`` (the sprint is scoped to
+        the filter project, so applying it elsewhere would be inconsistent).
+        """
+        from pomban.core.task_input import parse_task_input
+
+        parsed = parse_task_input(text)
+        project_id: int | None = None
+        sprint_id: int | None = None
+        if parsed.project_name:
+            project_id = self.db.get_or_create_project(parsed.project_name).id
+        elif self.project_filter.scoped_project_id is not None:
+            project_id = self.project_filter.scoped_project_id
+        if parsed.sprint_name:
+            sprint_id = self.db.get_or_create_sprint(project_id, parsed.sprint_name).id
+        elif self.active_sprint_id is not None and not parsed.project_name:
+            sprint_id = self.active_sprint_id
+        return self.db.add_task(
+            parsed.title,
+            tags=parsed.tags_csv,
+            estimated_pomodoros=parsed.estimate,
+            project_id=project_id,
+            sprint_id=sprint_id,
+        )
+
+    def delete_task_by_id(self, task_id: int) -> None:
+        self.active_tasks = [t for t in self.active_tasks if t.id != task_id]
+        self.db.delete_task(task_id)
+
+    # ---------- global actions ----------
+    def action_switch(self, name: str) -> None:
+        valid = ["dashboard", "kanban", "stats", "history", "projects", "sprints"]
+        if name in valid:
+            try:
+                self.switch_screen(name)
+            except Exception:
+                log.exception("switch_screen failed for %s", name)
+                return
+            scr = self.screen
+            if isinstance(scr, AppScreen):
+                try:
+                    scr.refresh_view()
+                except Exception:
+                    log.exception("refresh_view failed on %s", type(scr).__name__)
+
+    def action_toggle(self) -> None:
+        was_idle = self.engine.phase == Phase.IDLE
+        was_running_focus = self.engine.running and self.engine.phase == Phase.FOCUS
+        events = self.engine.toggle(time.monotonic())
+        if was_idle and self.engine.phase == Phase.FOCUS:
+            self._log_new_session()
+        elif was_running_focus and not self.engine.running and self.current_session_id is not None:
+            # User paused mid-focus — log as an interruption.
+            self.sessions.log_interruption(self.current_session_id)
+        self._handle_events(events)
+        self._refresh_all()
+
+    def action_reset(self) -> None:
+        if self.current_session_id is not None and self.session_start_monotonic is not None:
+            self.coord.end(self.coord.elapsed(), completed=False)
+        self.engine.reset()
+        self._refresh_all()
+
+    def action_skip(self) -> None:
+        events = self.engine.skip(time.monotonic())
+        if Event.PHASE_COMPLETED in events and self.current_session_id is not None:
+            self.coord.end(self.coord.elapsed(), completed=False)
+            self._log_new_session()
+        self._refresh_all()
+
+    def action_start_on_selected(self) -> None:
+        scr = self.screen
+        sel = getattr(scr, "selected_task", lambda: None)()
+        if sel:
+            self.start_focus_on(sel)
+
+    def action_delete_task(self) -> None:
+        scr = self.screen
+        sel = getattr(scr, "selected_task", lambda: None)()
+        if sel:
+            self.delete_task_by_id(sel.id)
+            self._refresh_all()
+
+    def action_complete_task(self) -> None:
+        scr = self.screen
+        sel = getattr(scr, "selected_task", lambda: None)()
+        if sel:
+            self.db.set_task_status(sel.id, "done")
+            self.active_tasks = [t for t in self.active_tasks if t.id != sel.id]
+            self._refresh_all()
+
+    def _focused_task(self) -> Task | None:
+        """Resolve the task the user is pointing at on the current screen."""
+        scr = self.screen
+        sel = getattr(scr, "selected_task", None)
+        if callable(sel):
+            t = sel()
+            if t is not None:
+                return t
+        card = getattr(scr, "focused_card", None)
+        if callable(card):
+            c = card()
+            if c is not None:
+                return getattr(c, "task_data", None)
+        return None
+
+    def action_edit_task(self) -> None:
+        task = self._focused_task()
+        if task is None:
+            return
+        from pomban.screens.edit_task import EditTaskModal
+
+        project_name = None
+        if task.project_id is not None:
+            try:
+                project_name = self.db.get_project(task.project_id).name
+            except Exception:
+                log.exception("loading project %s for edit failed", task.project_id)
+                project_name = None
+        self.push_screen(
+            EditTaskModal(task, project_name=project_name),
+            lambda result: self._on_task_edited(task.id, result),
+        )
+
+    def _on_task_edited(self, task_id: int, result: dict | None) -> None:
+        if result is None:
+            return
+        project_name = (result.get("project") or "").strip()
+        project_id = self.db.get_or_create_project(project_name).id if project_name else None
+        self.db.update_task(
+            task_id,
+            title=result["title"],
+            tags=result["tags"],
+            estimated_pomodoros=result["estimate"],
+            project_id=project_id,
+            due_date=result.get("due_date", ""),
+            priority=result.get("priority", 0),
+        )
+        self._refresh_all()
+
+    def action_help(self) -> None:
+        # Snapshot the live, context-aware bindings (app + screen + focused widget)
+        # so the overlay always matches reality and reflects the focused panel.
+        snapshot: list[tuple[str, str]] = []
+        seen: set[str] = set()
+        try:
+            for ab in self.screen.active_bindings.values():
+                b = ab.binding
+                if b.description and b.description not in seen:
+                    seen.add(b.description)
+                    snapshot.append((b.key, b.description))
+        except Exception:
+            log.exception("failed to snapshot bindings for help")
+        self.push_screen(HelpScreen(snapshot))
+
+    def _maybe_prompt_resume(self) -> None:
+        pending = self.db.kv_get("pending_session_id")
+        if not pending:
+            return
+        try:
+            sid = int(pending)
+        except ValueError:
+            self.db.kv_delete("pending_session_id")
+            return
+        remaining = int(self.db.kv_get("pending_remaining_seconds") or 0)
+        phase_str = self.db.kv_get("pending_phase") or "focus"
+        task_id_str = self.db.kv_get("pending_task_id")
+        task_title = None
+        if task_id_str:
+            try:
+                task_title = self.db.get_task(int(task_id_str)).title
+            except Exception:
+                log.exception("loading pending task %s for resume failed", task_id_str)
+                task_title = None
+        self.push_screen(
+            ResumePrompt(task_title, remaining),
+            lambda resume: self._on_resume_choice(resume, sid, remaining, phase_str, task_id_str),
+        )
+
+    def _on_resume_choice(
+        self, resume: bool | None, sid: int, remaining: int, phase_str: str, task_id_str: str | None
+    ) -> None:
+        for k in (
+            "pending_session_id",
+            "pending_remaining_seconds",
+            "pending_phase",
+            "pending_task_id",
+        ):
+            self.db.kv_delete(k)
+        if not resume:
+            with contextlib.suppress(Exception):
+                self.sessions.end(sid, actual_seconds=0, completed=False)
+            return
+        # Resume: load task, restore engine state, log nothing new (reuse session row).
+        if task_id_str:
+            try:
+                self.active_task = self.db.get_task(int(task_id_str))
+            except Exception:
+                log.exception("restoring active task %s on resume failed", task_id_str)
+                self.active_task = None
+        self.engine.restore(Phase(phase_str), remaining, running=True, now=time.monotonic())
+        self.current_session_id = sid
+        self.session_start_monotonic = time.monotonic()
+        self._refresh_all()
+
+    def _persist_pending_session(self) -> None:
+        if self.current_session_id is None or self.engine.phase == Phase.IDLE:
+            return
+        # Capture latest remaining via a tick.
+        self.engine.tick(time.monotonic())
+        self.db.kv_set("pending_session_id", str(self.current_session_id))
+        self.db.kv_set("pending_remaining_seconds", str(self.engine.remaining))
+        self.db.kv_set("pending_phase", self.engine.phase.value)
+        if self.active_task:
+            self.db.kv_set("pending_task_id", str(self.active_task.id))
+
+    async def on_unmount(self) -> None:
+        self._persist_pending_session()
+        if self.config.sync.enabled:
+            try:
+                git_sync(self.db.path.parent)
+            except Exception:
+                log.exception("git_sync on shutdown failed")
+
+    def action_pick_preset(self) -> None:
+        if not self.config.presets:
+            with contextlib.suppress(Exception):
+                self.notify(
+                    "No presets configured. Add [[preset]] entries to your config.toml.", timeout=4
+                )
+            return
+        self.push_screen(PresetPicker(self.config.presets), self._on_preset_picked)
+
+    def _on_preset_picked(self, preset) -> None:
+        if preset is None:
+            return
+        self.engine.settings = Settings(
+            focus_seconds=preset.focus_minutes * 60,
+            short_break_seconds=preset.short_break_minutes * 60,
+            long_break_seconds=preset.long_break_minutes * 60,
+            cycles_before_long_break=preset.cycles_before_long_break,
+            warning_seconds=self.engine.settings.warning_seconds,
+        )
+        with contextlib.suppress(Exception):
+            self.notify(f"Preset '{preset.name}' will apply on next session.", timeout=3)
+
+    # ---------- project / sprint filter (state lives in self.filters) ----------
+    @property
+    def project_filter(self) -> ProjectFilter:
+        return self.filters.project
+
+    @property
+    def active_sprint_id(self) -> int | None:
+        return self.filters.sprint_id
+
+    @active_sprint_id.setter
+    def active_sprint_id(self, value: int | None) -> None:
+        # Direct assignment sets state without persisting (used by tests / internal
+        # paths); use set_active_sprint() to persist + refresh.
+        self.filters.sprint_id = value
+
+    def set_project_filter(self, pf: ProjectFilter) -> None:
+        self.filters.set_project(pf)
+        self._refresh_all()
+
+    def set_active_project(self, project_id: int | None) -> None:
+        """Convenience: filter to a specific project, or All when None."""
+        self.set_project_filter(
+            ProjectFilter.all() if project_id is None else ProjectFilter.project(project_id)
+        )
+
+    def set_active_sprint(self, sprint_id: int | None) -> None:
+        self.filters.set_sprint(sprint_id)
+        self._refresh_all()
+
+    def action_pick_project(self) -> None:
+        from pomban.screens.project_picker import ProjectPickerModal
+
+        self.push_screen(
+            ProjectPickerModal(self.db.list_projects(), self.project_filter.project_id),
+            self._on_project_picked,
+        )
+
+    def _on_project_picked(self, result) -> None:
+        if result is None:
+            return
+        # result is either int (project id), 0 (Inbox), or -1 (All)
+        if result == -1:
+            self.set_project_filter(ProjectFilter.all())
+            label = "All"
+        elif result == 0:
+            self.set_project_filter(ProjectFilter.inbox())
+            label = "Inbox"
+        else:
+            self.set_project_filter(ProjectFilter.project(int(result)))
+            try:
+                label = self.db.get_project(int(result)).name
+            except Exception:
+                log.exception("loading project %s for picker label failed", result)
+                label = "project"
+        with contextlib.suppress(Exception):
+            self.notify(f"Project filter: {label}", timeout=2)
+
+    def action_cycle_project(self) -> None:
+        """Cycle through: All → each project → Inbox → All ..."""
+        projects = self.db.list_projects()
+        cycle = (
+            [ProjectFilter.all()]
+            + [ProjectFilter.project(p.id) for p in projects]
+            + [ProjectFilter.inbox()]
+        )
+        try:
+            idx = cycle.index(self.project_filter)
+        except ValueError:
+            idx = 0
+        nxt = cycle[(idx + 1) % len(cycle)]
+        self.set_project_filter(nxt)
+        label = self.active_project_label() or "All"
+        with contextlib.suppress(Exception):
+            self.notify(f"Project: {label}", timeout=2)
+
+    def project_filter_for_db(self):
+        """Translate the active filter into the db.list_tasks `project_filter` value."""
+        return self.filters.for_db()
+
+    def active_project_label(self) -> str | None:
+        return self.filters.project_label()
+
+    def active_project_color(self) -> str:
+        return self.filters.project_color()
+
+    def action_pick_sprint(self) -> None:
+        from pomban.screens.sprint_picker import SprintPickerModal
+
+        # Sprints scoped to the active project (or all if no real project filter)
+        scope_pid = self.project_filter.scoped_project_id
+        sprints = self.db.list_sprints(project_id=scope_pid)
+        self.push_screen(
+            SprintPickerModal(sprints, self.active_sprint_id),
+            self._on_sprint_picked,
+        )
+
+    def _on_sprint_picked(self, result) -> None:
+        if result is None:
+            return
+        if result == -1:
+            self.set_active_sprint(None)
+            return
+        self.set_active_sprint(int(result))
+
+    # ---------- lunch break ----------
+    def action_lunch_break(self) -> None:
+        """Start a long pause (lunch). Saves current phase to resume after."""
+        breaks = getattr(self.config, "breaks", None)
+        minutes = breaks.lunch_minutes if breaks else 45
+        self._start_long_pause(minutes * 60, label="lunch")
+
+    def _start_long_pause(self, seconds: int, label: str = "long_pause") -> None:
+        # If a session is running, log an interruption with reason, end it as incomplete.
+        if self.current_session_id is not None and self.session_start_monotonic is not None:
+            try:
+                self.sessions.log_interruption(self.current_session_id, reason=label)
+            except Exception:
+                log.exception("log_interruption failed for session %s", self.current_session_id)
+            self.coord.end(self.coord.elapsed(), completed=False)
+        # Remember the phase we interrupted so the engine resumes it after the pause.
+        prev_phase = self.engine.phase
+        self.engine.enter_long_pause(seconds, time.monotonic(), resume_phase=prev_phase)
+        # Log the long pause as a session (engine is now in LONG_PAUSE with
+        # remaining == seconds, so coord.begin records the right planned time).
+        self.coord.begin([])
+        with contextlib.suppress(Exception):
+            self.notify(f"⏸  {label} started ({seconds // 60} min)", timeout=3)
+        self._refresh_all()
+
+    def action_toggle_auto_advance(self) -> None:
+        self.config.timer.auto_advance = not self.config.timer.auto_advance
+        state = "on" if self.config.timer.auto_advance else "off"
+        with contextlib.suppress(Exception):
+            self.notify(f"Auto-advance {state}", timeout=2)
+        if self.config_path is not None:
+            try:
+                save_config(self.config, self.config_path)
+            except Exception:
+                log.exception("persisting auto_advance toggle failed")
+
+    def action_cycle_theme(self) -> None:
+        self._theme_idx = (self._theme_idx + 1) % len(THEMES)
+        name = THEMES[self._theme_idx]
+        with contextlib.suppress(Exception):
+            self.theme = name
+        self.config.ui.theme = name
+        if self.config_path is not None:
+            try:
+                save_config(self.config, self.config_path)
+            except Exception:
+                log.exception("persisting theme change failed")

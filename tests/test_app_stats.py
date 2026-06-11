@@ -3,10 +3,10 @@ from pathlib import Path
 
 import pytest
 
-from pomodoro.app import PomodoroApp
-from pomodoro.core.db import DB
-from pomodoro.screens.dashboard import DashboardScreen
-from pomodoro.screens.stats import StatsScreen
+from pomban.app import PomodoroApp
+from pomban.core.db import DB
+from pomban.screens.dashboard import DashboardScreen
+from pomban.screens.stats import StatsScreen
 
 
 async def wait_for(pilot, screen_cls):

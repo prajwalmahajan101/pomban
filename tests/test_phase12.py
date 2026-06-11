@@ -3,10 +3,10 @@ from pathlib import Path
 
 import pytest
 
-from pomodoro.core.config import Preset
-from pomodoro.core.db import DB
-from pomodoro.core.exporter import export_markdown
-from pomodoro.notifications import run_hook
+from pomban.core.config import Preset
+from pomban.core.db import DB
+from pomban.core.exporter import export_markdown
+from pomban.notifications import run_hook
 
 
 @pytest.fixture

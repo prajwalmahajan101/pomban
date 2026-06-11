@@ -3,7 +3,7 @@ from pathlib import Path
 
 import pytest
 
-from pomodoro.core.db import DB
+from pomban.core.db import DB
 
 
 @pytest.fixture
@@ -59,7 +59,7 @@ def test_delete_task_with_sessions_cascades(db):
 
 
 def test_schema_is_current(db):
-    from pomodoro.core.db import SCHEMA_VERSION
+    from pomban.core.db import SCHEMA_VERSION
 
     assert db.conn.execute("PRAGMA user_version").fetchone()[0] == SCHEMA_VERSION
 
@@ -112,7 +112,7 @@ def test_migration_v8_drops_stale_kind_check(tmp_path):
 
     db = DB(p)  # runs migration v8
     try:
-        from pomodoro.core.db import SCHEMA_VERSION
+        from pomban.core.db import SCHEMA_VERSION
 
         assert db.conn.execute("PRAGMA user_version").fetchone()[0] == SCHEMA_VERSION
         # Existing data survived the rebuild (no cascade wipe).

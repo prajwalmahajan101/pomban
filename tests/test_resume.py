@@ -1,10 +1,10 @@
 import pytest
 
-from pomodoro.app import PomodoroApp
-from pomodoro.core.db import DB
-from pomodoro.core.timer_engine import Phase
-from pomodoro.screens.dashboard import DashboardScreen
-from pomodoro.screens.resume import ResumePrompt
+from pomban.app import PomodoroApp
+from pomban.core.db import DB
+from pomban.core.timer_engine import Phase
+from pomban.screens.dashboard import DashboardScreen
+from pomban.screens.resume import ResumePrompt
 
 
 async def wait_for(pilot, screen_cls):

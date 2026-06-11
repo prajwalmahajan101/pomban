@@ -3,8 +3,8 @@ from pathlib import Path
 
 import pytest
 
-from pomodoro.core.db import DB
-from pomodoro.core.session_service import SessionService
+from pomban.core.db import DB
+from pomban.core.session_service import SessionService
 
 
 @pytest.fixture

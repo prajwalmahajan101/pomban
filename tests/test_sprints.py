@@ -8,8 +8,8 @@ from pathlib import Path
 
 import pytest
 
-from pomodoro.app import PomodoroApp
-from pomodoro.core.db import DB
+from pomban.app import PomodoroApp
+from pomban.core.db import DB
 
 
 @pytest.fixture

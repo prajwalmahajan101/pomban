@@ -1,0 +1,5 @@
+# Runtime dependencies. Source of truth for pip-tools.
+# Compile with: pip-compile requirements/base.in -o requirements/base.txt
+# Mirrors [project.dependencies] in pyproject.toml.
+
+textual>=0.79

@@ -3,9 +3,10 @@ requires = ["setuptools>=68", "wheel"]
 build-backend = "setuptools.build_meta"
 
 [project]
-name = "pomodoro"
+name = "pomban"
 version = "0.1.0"
-description = "Pomodoro dashboard TUI with tasks and stats"
+description = "Project-management TUI that runs on pomodoros"
+keywords = ["tui", "textual", "pomodoro", "kanban", "sprint", "project-management", "productivity"]
 requires-python = ">=3.11"
 license = "MIT"
 authors = [{ name = "Prajwal Mahajan", email = "prajwal.mahajan101@gmail.com" }]
@@ -18,10 +19,19 @@ dev = [
     "pytest>=8",
     "pytest-asyncio>=0.23",
     "ruff==0.15.16",
+    "mypy>=1.11",
+    "pre-commit>=3.7",
+    "build>=1.2",
+    "twine>=5",
+]
+docs = [
+    "mkdocs>=1.6",
+    "mkdocs-material>=9.5",
+    "pymdown-extensions>=10",
 ]
 
 [project.scripts]
-pomodoro = "pomodoro.__main__:main"
+pomban = "pomban.__main__:main"
 
 [tool.setuptools.packages.find]
 where = ["src"]
@@ -56,3 +66,14 @@ ignore = [
 quote-style = "double"
 indent-style = "space"
 line-ending = "lf"
+
+[tool.mypy]
+python_version = "3.11"
+files = ["src"]
+warn_unused_ignores = true
+warn_unreachable = true
+show_error_codes = true
+
+[[tool.mypy.overrides]]
+module = ["textual.*"]
+ignore_missing_imports = true

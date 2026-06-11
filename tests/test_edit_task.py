@@ -3,9 +3,9 @@ from pathlib import Path
 
 import pytest
 
-from pomodoro.app import PomodoroApp
-from pomodoro.core.db import DB
-from pomodoro.screens.dashboard import DashboardScreen
+from pomban.app import PomodoroApp
+from pomban.core.db import DB
+from pomban.screens.dashboard import DashboardScreen
 
 
 async def wait_for_dashboard(pilot) -> DashboardScreen:

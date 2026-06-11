@@ -1,6 +1,6 @@
 from unittest.mock import patch
 
-from pomodoro.plugins import PluginRegistry, git_sync
+from pomban.plugins import PluginRegistry, git_sync
 
 
 class GoodPlugin:
@@ -41,7 +41,7 @@ def test_plugin_error_does_not_propagate(monkeypatch, tmp_path):
     # GoodPlugin still ran:
     assert GoodPlugin.started == [("focus", "X")]
     # Error logged
-    log_files = list((tmp_path / "pomodoro").iterdir())
+    log_files = list((tmp_path / "pomban").iterdir())
     assert any(f.name == "plugins.log" for f in log_files)
 
 

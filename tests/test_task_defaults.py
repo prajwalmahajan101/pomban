@@ -3,9 +3,9 @@ from pathlib import Path
 
 import pytest
 
-from pomodoro.app import PomodoroApp
-from pomodoro.core.db import DB
-from pomodoro.core.filters import ProjectFilter
+from pomban.app import PomodoroApp
+from pomban.core.db import DB
+from pomban.core.filters import ProjectFilter
 
 
 @pytest.fixture
