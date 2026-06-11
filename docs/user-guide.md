@@ -69,41 +69,6 @@ A lunch (or coffee walk, school pickup, …) is a real recurring interruption th
 
 ---
 
-## Music during focus
-
-Set `[music].enabled = true` (see [configuration](configuration.md#music)) to drive an
-external player around phases — playback starts when you begin focusing and pauses when
-the phase ends. Breaks and lunches are treated the same way (`on_break_*`).
-
-- `m` toggles play/pause without leaving the timer; `Shift+M` skips to the next track.
-- The default player is `cliamp`; any binary that takes `play` / `pause` / `toggle` /
-  `next` subcommands works — set `[music].player` and the `on_*` subcommands to match.
-- If the player isn't installed the feature degrades silently — a note is written to
-  `~/.local/state/pomodoro/music.log` and the timer keeps working.
-- Press **`7`** for the full **Music section**: pick a **playlist** (Enter) to start
-  playing it, or browse its **tracks** (right pane) and Enter one to play that song.
-  Now-playing has a seek bar (`[` / `]`), shuffle (`z`), repeat (`x`), and volume
-  (`+` / `-`) — all cliamp-driven. On a narrow terminal the panes stack vertically.
-
-### The in-app music panel
-
-With `[music].show_panel = true` (default), the Dashboard grows a now-playing strip.
-It reads `cliamp status --json` on a timer and shows the current track and play state.
-You **don't** need to launch cliamp yourself — on startup the app spawns a headless
-`cliamp --daemon` in the background (disable with `autostart = false`), and stops the
-one it started when you quit. **Tab** to the panel to focus it (it gets an accent
-border like any active panel), then:
-
-- `Space` play/pause · `n` / `p` next / previous · `+` / `-` volume · `Shift+V` visualizer.
-
-Turn on `[music].visualizer` (or press `Shift+V`) to stream `cliamp visstream` into a
-live sparkline. Status reads and the visualizer run off the UI thread, so a missing or
-slow player never stutters the timer — the panel just shows "not running". The rich panel
-features are cliamp-specific; other players still get the global `m` controls. The old
-side-by-side launcher (`python -m pomodoro --with-music`) remains as a fallback.
-
----
-
 ## Install
 
 The quickest path is the `Makefile`:

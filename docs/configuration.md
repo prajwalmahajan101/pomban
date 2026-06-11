@@ -70,30 +70,6 @@ lunch_minutes      = 45
 lunch_window_start = ""   # e.g. "12:30"
 lunch_window_end   = ""   # e.g. "13:30"
 
-# ───────────────────────────────────────────
-[music]
-# Drive an external music player (e.g. cliamp) around phase transitions, and
-# show an in-app control panel. If `enabled = false`, the section is a no-op.
-enabled         = false
-player          = "cliamp"   # binary in PATH
-on_focus_start  = "play"
-on_focus_end    = "pause"
-on_break_start  = ""
-on_break_end    = "play"
-# In-app control panel (Dashboard strip)
-show_panel      = true       # render the now-playing / control panel
-visualizer      = false      # stream `cliamp visstream` into a sparkline
-visualizer_fps  = 20
-poll_seconds    = 1.0        # how often the panel re-reads `status --json`
-volume_step_db  = 2.0        # +/- volume increment (dB)
-# Auto-start a headless player on launch (no separate instance needed)
-autostart       = true
-daemon_args     = "--daemon" # args to run the player headless; "" disables
-# Full-screen music view (press 7)
-music_screen    = true       # register the dedicated Music section
-seek_seconds    = 5          # +/- seek step (seconds) on the music screen
-show_history    = true       # show "recently played" on the music screen
-
 [kanban]
 # Per-column work-in-progress limits; 0 = unlimited. A column over its limit is
 # flagged red (warns on move, never hard-blocks).
@@ -207,56 +183,6 @@ git remote add origin <your-git-url>
 ```
 
 The app commits on exit but **does not push**. Set up a cron job or a `post-commit` hook to handle pushing if you want cross-machine sync.
-
-### `[music]`
-
-Drives an external music player around phase transitions. Each `on_*` value is a
-subcommand passed to `player` (e.g. `cliamp play`). An empty value means "do nothing"
-for that event. If the player binary isn't on `$PATH`, the app logs one line to
-`~/.local/state/pomodoro/music.log` and carries on — it never crashes.
-
-| Key | Type | Default | Notes |
-|---|---|---|---|
-| `enabled` | bool | false | Master switch; when false the whole section is a no-op |
-| `player` | str | `"cliamp"` | Player binary; invoked as `player <subcommand>` |
-| `on_focus_start` | str | `"play"` | Subcommand when a focus phase starts |
-| `on_focus_end` | str | `"pause"` | Subcommand when a focus phase ends |
-| `on_break_start` | str | `""` | Subcommand when a break/lunch starts |
-| `on_break_end` | str | `"play"` | Subcommand when a break/lunch ends |
-| `show_panel` | bool | true | Show the in-app now-playing / control panel on the Dashboard |
-| `visualizer` | bool | false | Stream `cliamp visstream` (NDJSON) into a live sparkline |
-| `visualizer_fps` | int | 20 | Visualizer frame rate |
-| `poll_seconds` | float | 1.0 | How often the panel re-reads `status --json` |
-| `volume_step_db` | float | 2.0 | Volume increment for the panel's `+`/`-` keys |
-| `autostart` | bool | true | Spawn a headless player daemon on launch so no separate instance is needed |
-| `daemon_args` | str | `"--daemon"` | Args to run the player headless; empty string disables auto-start |
-| `music_screen` | bool | true | Register the full-screen Music section (press `7`) |
-| `seek_seconds` | int | 5 | Seek step (seconds) for `[` / `]` on the music screen |
-| `show_history` | bool | true | Show "recently played" (`history --json`) on the music screen |
-
-**Auto-start.** On launch (when `enabled` and `autostart`), the app spawns
-`cliamp --daemon` in the background — a headless IPC server — so the panel works
-immediately without you starting cliamp in another terminal. It's idempotent: if
-an instance is already running, nothing is spawned. The app only stops the daemon
-**it** started (a pre-existing cliamp is left running). For a player without a
-headless mode, set `daemon_args = ""`.
-
-**In-app control panel.** When `enabled` and `show_panel`, the Dashboard shows a
-now-playing strip read from `cliamp status --json`. Tab to it to focus it, then
-`Space` play/pause, `n`/`p` next/prev, `+`/`-` volume, `Shift+V` toggle the
-visualizer. The reads run off the UI thread, so a missing or slow player never
-blocks the timer — the panel just shows "not running". The rich panel features
-(`status`, `visstream`) are cliamp-specific; other players still get the global
-`m` / `Shift+M` controls and the `on_*` phase subcommands.
-
-Global keys: `m` toggles play/pause, `Shift+M` skips track. Lunch / long pauses
-are treated as breaks (they fire `on_break_start` / `on_break_end`).
-`python -m pomodoro --with-music` still launches cliamp side-by-side as a fallback.
-
-**Full music section (`7`).** A dedicated screen adds a progress/seek bar
-(`[`/`]`), shuffle (`z`), repeat (`x`), a saved-playlist browser (`Enter` loads),
-and recently-played history — all cliamp-driven and polled off the UI thread.
-Set `music_screen = false` to omit the screen entirely.
 
 ### `[kanban]`
 

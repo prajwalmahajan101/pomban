@@ -1,6 +1,6 @@
 """Live session bookkeeping + the engine⇄DB⇄SessionService wiring.
 
-UI-free: the app owns modals, notifications, phase hooks and music; this object
+UI-free: the app owns modals, notifications and phase hooks; this object
 just opens/closes the DB session rows, tracks the current session id and its
 wall-clock start, and answers the lunch-suggestion question. Extracted from the
 app shell so the session lifecycle is testable without Textual.

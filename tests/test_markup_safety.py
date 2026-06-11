@@ -1,13 +1,12 @@
-"""Regression: user/player text with markup metacharacters must not break Rich
+"""Regression: user text with markup metacharacters must not break Rich
 markup rendering. A title containing an unbalanced closing tag like '[/]' used to
-raise MarkupError and crash the board/list/timer/music render."""
+raise MarkupError and crash the board/list/timer render."""
 from textual.content import Content
 
 from pomodoro.core.models import Task
 from pomodoro.widgets.card import (
     TaskCard, render_chips, render_project_badge, render_sprint_chip,
 )
-from pomodoro.widgets.music_panel import _extract
 
 NASTY = "boom [/] [b]unclosed [red]x"
 
@@ -37,13 +36,3 @@ def test_task_card_body_is_valid_markup(monkeypatch):
              sprint_name="s[/]print", actual_pomodoros=1)
     assert captured, "TaskCard.update was not called"
     assert _parses(captured[-1])
-
-
-def test_music_panel_title_markup_safe():
-    # _extract returns raw fields; the panel escapes them. Simulate the panel's line.
-    from rich.markup import escape
-    info = _extract({"title": "intro [/] outro", "artist": "[b]DJ", "state": "playing"})
-    line = f"[b]▶ {escape(str(info['title']))}[/]"
-    assert _parses(line)
-    meta = "[dim]" + escape(str(info["artist"])) + "[/]"
-    assert _parses(meta)

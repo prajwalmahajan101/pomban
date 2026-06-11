@@ -83,27 +83,7 @@ def main() -> None:
     if args and args[0] == "sprint" and len(args) >= 2 and args[1] == "export":
         _sprint_export(args[2:])
         return
-    if "--with-music" in args:
-        _launch_music_player()
     PomodoroApp().run()
-
-
-def _launch_music_player() -> None:
-    """Best-effort launch of the music TUI side-by-side. cliamp-specific; silent on failure."""
-    import shutil
-    import subprocess
-    from pomodoro.core import config as cfg_module
-    cfg = cfg_module.load()
-    if cfg.music.player != "cliamp":
-        return
-    launcher = "omarchy-launch-or-focus-tui"
-    if shutil.which(launcher) is None:
-        return
-    try:
-        subprocess.Popen([launcher, "cliamp"],
-                         stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
-    except OSError:
-        pass
 
 
 if __name__ == "__main__":

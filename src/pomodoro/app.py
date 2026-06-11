@@ -15,7 +15,6 @@ from pomodoro.core.session_coordinator import SessionCoordinator
 from pomodoro.core.models import Task
 from pomodoro.core.session_service import SessionService
 from pomodoro.core.timer_engine import Event, Phase, Settings, TimerEngine
-from pomodoro.music import MusicController
 from pomodoro.notifications import NotifyConfig, fire, run_hook
 from pomodoro.plugins import git_sync, registry as plugin_registry
 from pomodoro.screens.base import AppScreen
@@ -48,8 +47,6 @@ class PomodoroApp(App):
         Binding("L,shift+l", "lunch_break", "Lunch", show=False),
         Binding("F,shift+f", "pick_sprint", "Sprint", show=False),
         Binding("T,shift+t", "toggle_auto_advance", "Auto-advance", show=False),
-        Binding("m", "music_toggle", "Music", show=False),
-        Binding("M,shift+m", "music_next", "Next track", show=False),
     ]
 
     def __init__(self, db: DB | None = None, fast: bool = False, settings: Settings | None = None,
@@ -68,7 +65,6 @@ class PomodoroApp(App):
             notify_cfg = cfg_module.to_notify_config(self.config)
         self.engine = TimerEngine(settings=settings)
         self.notify_cfg = notify_cfg
-        self.music = MusicController(self.config.music)
         # Multi-task focus: active_tasks is the source of truth; active_task is a
         # back-compat property (active_tasks[0]). active_chip_index drives the
         # cosmetic chip highlight on the Dashboard timer.
@@ -119,17 +115,10 @@ class PomodoroApp(App):
         self.install_screen(HistoryScreen(), name="history")
         self.install_screen(ProjectsScreen(), name="projects")
         self.install_screen(SprintsScreen(), name="sprints")
-        if self.config.music.music_screen:
-            from pomodoro.screens.music import MusicScreen
-            self.install_screen(MusicScreen(self.music), name="music")
         self.push_screen("dashboard")
         plugin_registry().discover()
         self._maybe_prompt_resume()
         self.set_interval(0.25, self._tick)
-        # Auto-start a headless music daemon (off-thread so it can't block launch),
-        # so the music panel works without a separately-launched player instance.
-        if self.config.music.enabled:
-            self.run_worker(self.music.start_daemon, thread=True, group="music-daemon")
         try:
             self.theme = THEMES[self._theme_idx]
         except Exception:
@@ -334,10 +323,6 @@ class PomodoroApp(App):
             reg.fire("on_phase_started", phase.value, task_title or None)
         else:
             reg.fire("on_phase_completed", phase.value, task_title or None, True)
-        # Music: focus drives focus_*, every other phase (incl. LONG_PAUSE/lunch)
-        # drives break_* so playback pauses during breaks and lunch.
-        kind = "focus" if phase == Phase.FOCUS else "break"
-        self.music.fire(f"{kind}_{'start' if starting else 'end'}")
 
     def _log_new_session(self) -> None:
         if self.engine.phase == Phase.IDLE:
@@ -403,8 +388,6 @@ class PomodoroApp(App):
     # ---------- global actions ----------
     def action_switch(self, name: str) -> None:
         valid = ["dashboard", "kanban", "stats", "history", "projects", "sprints"]
-        if self.config.music.music_screen:
-            valid.append("music")
         if name in valid:
             try:
                 self.switch_screen(name)
@@ -489,6 +472,7 @@ class PomodoroApp(App):
             try:
                 project_name = self.db.get_project(task.project_id).name
             except Exception:
+                log.exception("loading project %s for edit failed", task.project_id)
                 project_name = None
         self.push_screen(
             EditTaskModal(task, project_name=project_name),
@@ -546,6 +530,7 @@ class PomodoroApp(App):
             try:
                 task_title = self.db.get_task(int(task_id_str)).title
             except Exception:
+                log.exception("loading pending task %s for resume failed", task_id_str)
                 task_title = None
         self.push_screen(
             ResumePrompt(task_title, remaining),
@@ -568,6 +553,7 @@ class PomodoroApp(App):
             try:
                 self.active_task = self.db.get_task(int(task_id_str))
             except Exception:
+                log.exception("restoring active task %s on resume failed", task_id_str)
                 self.active_task = None
         self.engine.restore(Phase(phase_str), remaining, running=True, now=time.monotonic())
         self.current_session_id = sid
@@ -587,11 +573,6 @@ class PomodoroApp(App):
 
     async def on_unmount(self) -> None:
         self._persist_pending_session()
-        # Tear down only the daemon we started (leaves a pre-existing player alone).
-        try:
-            self.music.stop_daemon()
-        except Exception:
-            log.exception("stopping music daemon failed")
         if self.config.sync.enabled:
             try:
                 git_sync(self.db.path.parent)
@@ -673,6 +654,7 @@ class PomodoroApp(App):
             try:
                 label = self.db.get_project(int(result)).name
             except Exception:
+                log.exception("loading project %s for picker label failed", result)
                 label = "project"
         try:
             self.notify(f"Project filter: {label}", timeout=2)
@@ -754,22 +736,6 @@ class PomodoroApp(App):
             pass
         self._refresh_all()
 
-    def action_music_toggle(self) -> None:
-        self.music.toggle()
-        if self.config.music.enabled:
-            try:
-                self.notify("♪ play / pause", timeout=2)
-            except Exception:
-                pass
-
-    def action_music_next(self) -> None:
-        self.music.next()
-        if self.config.music.enabled:
-            try:
-                self.notify("♪ ⏭ next track", timeout=2)
-            except Exception:
-                pass
-
     def action_toggle_auto_advance(self) -> None:
         self.config.timer.auto_advance = not self.config.timer.auto_advance
         state = "on" if self.config.timer.auto_advance else "off"
@@ -781,7 +747,7 @@ class PomodoroApp(App):
             try:
                 save_config(self.config, self.config_path)
             except Exception:
-                pass
+                log.exception("persisting auto_advance toggle failed")
 
     def action_cycle_theme(self) -> None:
         self._theme_idx = (self._theme_idx + 1) % len(THEMES)
@@ -795,4 +761,4 @@ class PomodoroApp(App):
             try:
                 save_config(self.config, self.config_path)
             except Exception:
-                pass
+                log.exception("persisting theme change failed")

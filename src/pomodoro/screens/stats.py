@@ -37,7 +37,6 @@ class StatsScreen(AppScreen):
         Binding("4", "app.switch('history')", "History"),
         Binding("5", "app.switch('projects')", "Projects", show=False),
         Binding("6", "app.switch('sprints')", "Sprints", show=False),
-        Binding("7", "app.switch('music')", "Music", show=False),
         Binding("question_mark", "app.help", "Help"),
         Binding("t", "app.cycle_theme", "Theme"),
         Binding("q", "app.quit", "Quit"),
