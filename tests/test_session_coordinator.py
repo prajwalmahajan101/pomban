@@ -2,11 +2,11 @@ import tempfile
 import time
 from pathlib import Path
 
-from pomodoro.core.config import BreaksSection, Config
-from pomodoro.core.db import DB
-from pomodoro.core.session_coordinator import SessionCoordinator
-from pomodoro.core.session_service import SessionService
-from pomodoro.core.timer_engine import Phase, Settings, TimerEngine
+from pomban.core.config import BreaksSection, Config
+from pomban.core.db import DB
+from pomban.core.session_coordinator import SessionCoordinator
+from pomban.core.session_service import SessionService
+from pomban.core.timer_engine import Phase, Settings, TimerEngine
 
 
 def _coord(td):

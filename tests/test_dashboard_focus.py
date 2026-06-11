@@ -4,9 +4,9 @@ from pathlib import Path
 import pytest
 from textual.widgets import ListView
 
-from pomodoro.app import PomodoroApp
-from pomodoro.core.db import DB
-from pomodoro.screens.dashboard import DashboardScreen
+from pomban.app import PomodoroApp
+from pomban.core.db import DB
+from pomban.screens.dashboard import DashboardScreen
 
 
 @pytest.mark.asyncio

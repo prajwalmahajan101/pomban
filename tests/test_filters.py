@@ -1,5 +1,5 @@
-from pomodoro.core.db import _NO
-from pomodoro.core.filters import ProjectFilter
+from pomban.core.db import _NO
+from pomban.core.filters import ProjectFilter
 
 
 def test_all_filter():

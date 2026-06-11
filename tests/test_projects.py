@@ -8,7 +8,7 @@ from pathlib import Path
 
 import pytest
 
-from pomodoro.core.db import DB, SCHEMA_VERSION
+from pomban.core.db import DB, SCHEMA_VERSION
 
 
 @pytest.fixture
@@ -74,7 +74,7 @@ def test_delete_project_moves_tasks_to_inbox(db):
 def test_app_parser_handles_at_project_and_tilde_estimate():
     # Pure parser test — we don't need full app, just verify add_task_from_input logic
     # by replicating the parsing inline. Real integration covered by smoke test.
-    from pomodoro.app import PomodoroApp
+    from pomban.app import PomodoroApp
 
     p = Path(tempfile.mktemp(suffix=".db"))
     d = DB(p)

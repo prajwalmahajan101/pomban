@@ -5,12 +5,12 @@ from pathlib import Path
 
 import pytest
 
-from pomodoro.app import PomodoroApp
-from pomodoro.core.config import Config
-from pomodoro.core.db import DB, SCHEMA_VERSION
-from pomodoro.core.models import Task
-from pomodoro.screens.kanban import _matches_query, _sort_key
-from pomodoro.widgets.card import render_due, render_priority
+from pomban.app import PomodoroApp
+from pomban.core.config import Config
+from pomban.core.db import DB, SCHEMA_VERSION
+from pomban.core.models import Task
+from pomban.screens.kanban import _matches_query, _sort_key
+from pomban.widgets.card import render_due, render_priority
 
 
 def _db(td):
@@ -110,8 +110,8 @@ def test_sort_key_priority_then_due_then_position():
 
 @pytest.mark.asyncio
 async def test_kanban_open_detail_then_edit():
-    from pomodoro.screens.card_detail import CardDetailScreen
-    from pomodoro.screens.edit_task import EditTaskModal
+    from pomban.screens.card_detail import CardDetailScreen
+    from pomban.screens.edit_task import EditTaskModal
 
     with tempfile.TemporaryDirectory() as td:
         db = DB(Path(td) / "k.db")
@@ -167,7 +167,7 @@ def test_matches_query():
 
 
 def test_kanban_section_loads_and_ignores_unknown(tmp_path):
-    from pomodoro.core.config import load
+    from pomban.core.config import load
 
     p = tmp_path / "c.toml"
     p.write_text("[kanban]\nwip_doing = 3\nbogus = 1\n")
@@ -198,7 +198,7 @@ async def test_kanban_search_filters_column_tasks():
 
 @pytest.mark.asyncio
 async def test_kanban_wip_overflow_flags_column():
-    from pomodoro.core.config import KanbanSection
+    from pomban.core.config import KanbanSection
 
     with tempfile.TemporaryDirectory() as td:
         db = DB(Path(td) / "k.db")

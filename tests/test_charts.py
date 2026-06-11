@@ -8,9 +8,9 @@ from pathlib import Path
 
 import pytest
 
-from pomodoro.core.db import DB
-from pomodoro.widgets.bar_chart import render_bars, render_vertical_bars
-from pomodoro.widgets.sparkline import render_sparkline
+from pomban.core.db import DB
+from pomban.widgets.bar_chart import render_bars, render_vertical_bars
+from pomban.widgets.sparkline import render_sparkline
 
 
 @pytest.fixture
@@ -88,13 +88,13 @@ def test_project_analytics_returns_keys(db):
 
 
 def test_tag_color_stable_across_calls():
-    from pomodoro.widgets.card import tag_color
+    from pomban.widgets.card import tag_color
 
     assert tag_color("backend") == tag_color("backend")
 
 
 def test_stable_index_is_deterministic():
-    from pomodoro.core.colors import stable_index
+    from pomban.core.colors import stable_index
 
     assert stable_index("hello", 8) == stable_index("hello", 8)
     assert 0 <= stable_index("anything", 5) < 5
@@ -102,7 +102,7 @@ def test_stable_index_is_deterministic():
 
 def test_no_color_strips_markup(monkeypatch):
     monkeypatch.setenv("NO_COLOR", "1")
-    from pomodoro.core.colors import adapt, paint
+    from pomban.core.colors import adapt, paint
 
     assert adapt("bright_cyan") == ""
     assert paint("x", "red") == "x"

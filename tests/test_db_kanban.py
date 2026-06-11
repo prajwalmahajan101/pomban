@@ -3,7 +3,7 @@ from pathlib import Path
 
 import pytest
 
-from pomodoro.core.db import DB
+from pomban.core.db import DB
 
 
 @pytest.fixture

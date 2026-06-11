@@ -27,9 +27,9 @@ import datetime as dt
 import tempfile
 from pathlib import Path
 
-from pomodoro.app import PomodoroApp
-from pomodoro.core.db import DB
-from pomodoro.core.timer_engine import Settings
+from pomban.app import PomodoroApp
+from pomban.core.db import DB
+from pomban.core.timer_engine import Settings
 
 REPO_ROOT = Path(__file__).resolve().parent.parent
 OUT_DIR = REPO_ROOT / "docs" / "screenshots"

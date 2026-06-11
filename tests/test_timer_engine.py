@@ -1,4 +1,4 @@
-from pomodoro.core.timer_engine import Event, Phase, Settings, TimerEngine
+from pomban.core.timer_engine import Event, Phase, Settings, TimerEngine
 
 
 def make() -> TimerEngine:

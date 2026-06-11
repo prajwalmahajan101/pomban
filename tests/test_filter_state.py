@@ -1,9 +1,9 @@
 import tempfile
 from pathlib import Path
 
-from pomodoro.core.db import DB
-from pomodoro.core.filter_state import FilterState
-from pomodoro.core.filters import ProjectFilter
+from pomban.core.db import DB
+from pomban.core.filter_state import FilterState
+from pomban.core.filters import ProjectFilter
 
 
 def _db(td):

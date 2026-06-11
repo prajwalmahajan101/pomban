@@ -1,4 +1,4 @@
-from pomodoro.core.task_input import parse_task_input
+from pomban.core.task_input import parse_task_input
 
 
 def test_plain_title():

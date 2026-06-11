@@ -4,8 +4,8 @@ from pathlib import Path
 
 import pytest
 
-from pomodoro.core.db import DB
-from pomodoro.widgets.heatmap import BLOCKS, render_heatmap
+from pomban.core.db import DB
+from pomban.widgets.heatmap import BLOCKS, render_heatmap
 
 
 @pytest.fixture
@@ -99,7 +99,7 @@ def test_migration_v1_to_v2_upgrades_existing_db(tmp_path):
     # interruptions table now exists
     db.conn.execute("SELECT COUNT(*) FROM interruptions").fetchone()
     # user_version bumped to current SCHEMA_VERSION (currently 6)
-    from pomodoro.core.db import SCHEMA_VERSION
+    from pomban.core.db import SCHEMA_VERSION
 
     v = db.conn.execute("PRAGMA user_version").fetchone()[0]
     assert v == SCHEMA_VERSION

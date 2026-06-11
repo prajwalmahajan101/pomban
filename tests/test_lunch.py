@@ -5,10 +5,10 @@ from __future__ import annotations
 import tempfile
 from pathlib import Path
 
-from pomodoro.app import PomodoroApp
-from pomodoro.core.config import BreaksSection, Config
-from pomodoro.core.db import DB
-from pomodoro.core.timer_engine import Phase
+from pomban.app import PomodoroApp
+from pomban.core.config import BreaksSection, Config
+from pomban.core.db import DB
+from pomban.core.timer_engine import Phase
 
 
 def _make_app(tmp_db: Path, breaks: BreaksSection | None = None) -> PomodoroApp:

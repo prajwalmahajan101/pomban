@@ -3,10 +3,10 @@ from pathlib import Path
 
 import pytest
 
-from pomodoro.app import PomodoroApp
-from pomodoro.core.db import DB
-from pomodoro.screens.dashboard import DashboardScreen
-from pomodoro.screens.help import HelpScreen
+from pomban.app import PomodoroApp
+from pomban.core.db import DB
+from pomban.screens.dashboard import DashboardScreen
+from pomban.screens.help import HelpScreen
 
 
 async def _to_dashboard(pilot, app):

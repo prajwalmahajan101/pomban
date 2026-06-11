@@ -4,8 +4,8 @@ raise MarkupError and crash the board/list/timer render."""
 
 from textual.content import Content
 
-from pomodoro.core.models import Task
-from pomodoro.widgets.card import (
+from pomban.core.models import Task
+from pomban.widgets.card import (
     TaskCard,
     render_chips,
     render_project_badge,

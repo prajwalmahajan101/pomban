@@ -1,9 +1,9 @@
-from pomodoro.core import config as cfg_mod
-from pomodoro.core.config import Config, Preset, load, save
+from pomban.core import config as cfg_mod
+from pomban.core.config import Config, Preset, load, save
 
 
 def test_load_missing_file_returns_defaults():
-    cfg = load("/tmp/definitely-does-not-exist-pomodoro.toml")
+    cfg = load("/tmp/definitely-does-not-exist-pomban.toml")
     assert cfg.timer.focus_minutes == 25
     assert cfg.ui.theme == "nord"
     assert cfg.presets == []

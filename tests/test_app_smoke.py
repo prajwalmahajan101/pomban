@@ -4,11 +4,11 @@ from pathlib import Path
 import pytest
 from textual.widgets import ListView
 
-from pomodoro.app import PomodoroApp
-from pomodoro.core.db import DB
-from pomodoro.core.timer_engine import Phase
-from pomodoro.screens.dashboard import DashboardScreen
-from pomodoro.screens.session_end import SessionEndScreen
+from pomban.app import PomodoroApp
+from pomban.core.db import DB
+from pomban.core.timer_engine import Phase
+from pomban.screens.dashboard import DashboardScreen
+from pomban.screens.session_end import SessionEndScreen
 
 
 async def wait_for_dashboard(pilot) -> DashboardScreen:
@@ -119,7 +119,7 @@ async def test_focus_completion_extend_keeps_focus():
 
 @pytest.mark.asyncio
 async def test_auto_advance_skips_modal():
-    from pomodoro.core.config import Config
+    from pomban.core.config import Config
 
     with tempfile.TemporaryDirectory() as td:
         db = DB(Path(td) / "aa.db")
@@ -147,7 +147,7 @@ async def test_auto_advance_skips_modal():
 
 @pytest.mark.asyncio
 async def test_toggle_auto_advance_persists_to_config():
-    from pomodoro.core import config as cfg_module
+    from pomban.core import config as cfg_module
 
     with tempfile.TemporaryDirectory() as td:
         db = DB(Path(td) / "aa.db")
