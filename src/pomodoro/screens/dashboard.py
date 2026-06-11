@@ -8,7 +8,6 @@ from textual.widgets import Footer, Header, Input, ListItem, ListView, Static
 
 from pomodoro.core.models import Task
 from pomodoro.screens.base import AppScreen
-from pomodoro.widgets.music_panel import MusicPanel
 from pomodoro.widgets.stats_strip import StatsStrip
 from pomodoro.widgets.timer_display import TimerDisplay
 from pomodoro.widgets.card import render_project_badge
@@ -38,16 +37,12 @@ class DashboardScreen(AppScreen):
     /* All panes share a dim base border so only the focused one stands out. */
     #timer-pane { width: 1fr; border: round $primary-darken-2; }
     #task-pane { width: 50; border: round $primary-darken-2; }
-    /* In normal flow (not docked) so it sits above the docked Footer — docking
-       it bottom made it fight the Footer for the same rows. */
-    #music-pane { border: round $primary-darken-2; height: auto; }
     /* Active-panel highlight (btop-style): accent border + accent title bar. */
-    #timer-pane:focus, #task-pane:focus-within, #music-pane:focus {
+    #timer-pane:focus, #task-pane:focus-within {
         border: round $accent;
     }
     #timer-pane:focus .pane-title,
-    #task-pane:focus-within .pane-title,
-    #music-pane:focus #np-title {
+    #task-pane:focus-within .pane-title {
         background: $accent;
         color: $text;
         text-style: bold;
@@ -69,7 +64,6 @@ class DashboardScreen(AppScreen):
         # btop-style pane selection: press the highlighted letter in a pane title.
         Binding("i", "focus_pane('timer-pane')", "Timer pane", show=False),
         Binding("a", "focus_pane('task-list')", "Tasks pane", show=False),
-        Binding("u", "focus_pane('music-pane')", "Music pane", show=False),
         Binding("r", "app.reset", "Reset"),
         Binding("shift+s,S", "app.skip", "Skip"),
         Binding("enter", "app.start_on_selected", "Start", show=False),
@@ -83,7 +77,6 @@ class DashboardScreen(AppScreen):
         Binding("4", "app.switch('history')", "History", show=False),
         Binding("5", "app.switch('projects')", "Projects", show=False),
         Binding("6", "app.switch('sprints')", "Sprints", show=False),
-        Binding("7", "app.switch('music')", "Music", show=False),
         Binding("question_mark", "app.help", "Help"),
         Binding("t", "app.cycle_theme", "Theme"),
         Binding("q", "app.quit", "Quit"),
@@ -100,16 +93,11 @@ class DashboardScreen(AppScreen):
                 yield Static(panel_title("Tasks", "a"), classes="pane-title")
                 yield ListView(id="task-list")
                 yield Input(placeholder="Add a task — use #tag inline", id="task-input")
-        mcfg = self.app.config.music
-        if mcfg.enabled and mcfg.show_panel:
-            yield MusicPanel(self.app.music, visualizer=mcfg.visualizer,
-                             poll_seconds=mcfg.poll_seconds, vis_fps=mcfg.visualizer_fps,
-                             volume_step=mcfg.volume_step_db)
         yield Footer()
 
     def on_mount(self) -> None:
         # Make the timer pane focusable so it can be the active panel (it has no
-        # focusable children); task/music panes highlight via :focus-within / :focus.
+        # focusable children); task pane highlights via :focus-within.
         self.query_one("#timer-pane").can_focus = True
         self.refresh_view()
         self.query_one("#task-list", ListView).focus()

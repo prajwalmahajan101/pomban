@@ -13,8 +13,8 @@ keys change depending on which panel is active.
 | Key | Action |
 |---|---|
 | `Tab` / `Shift+Tab` | Cycle focus between panels (Dashboard panes; Kanban columns) |
-| highlighted letter | Each panel title shows one highlighted letter — press it to focus that panel (btop-style). Dashboard: **T·i·mer** = `i`, **T·a·sks** = `a`, **♪ M·u·sic** = `u` |
-| `1`–`7` | Jump directly to a section (Dashboard / Kanban / Stats / History / Projects / Sprints / Music) |
+| highlighted letter | Each panel title shows one highlighted letter — press it to focus that panel (btop-style). Dashboard: **T·i·mer** = `i`, **T·a·sks** = `a` |
+| `1`–`6` | Jump directly to a section (Dashboard / Kanban / Stats / History / Projects / Sprints) |
 
 ## Global (works everywhere)
 
@@ -24,8 +24,6 @@ keys change depending on which panel is active.
 | `?` | Toggle help overlay |
 | `t` | Cycle theme; persisted to `config.toml` |
 | `Shift+T` / `T` | Toggle **auto-advance** (skip end-of-phase modal); persisted to `config.toml` |
-| `m` | Toggle **music** play/pause (when `[music].enabled`) |
-| `Shift+M` / `M` | Music **next track** |
 | `p` | Open preset picker (modal) |
 | `Shift+P` / `P` | Open **project** filter picker (All / Inbox / each project) |
 | `Shift+F` / `F` | Open **sprint** filter picker (scoped to active project) |
@@ -36,7 +34,6 @@ keys change depending on which panel is active.
 | `4` | Switch to **History** |
 | `5` | Switch to **Projects** management screen |
 | `6` | Switch to **Sprints** management screen |
-| `7` | Switch to the full **Music** section |
 
 ## Dashboard
 
@@ -59,46 +56,6 @@ keys change depending on which panel is active.
 | `c` | Mark selected task as **done** |
 | `e` | Edit selected task (title / tags / estimate / project / due / priority) |
 | `` ` `` (backtick) | Cycle the highlighted active-task chip (multi-task focus) |
-
-### Music panel (only when `[music].enabled` and the panel is **focused**)
-
-Tab to the music panel first; these keys are scoped to it (so `n`/`Space` mean
-music here, not new-task / timer):
-
-| Key | Action |
-|---|---|
-| `Space` | Play / pause |
-| `n` / `p` | Next / previous track |
-| `+` / `-` | Volume up / down (dB step) |
-| `Shift+V` / `V` | Toggle the live visualizer |
-
-For the full player with seek, playlists, shuffle/repeat and history, press `7`.
-
-## Music section (`7`) — full player
-
-A dedicated screen driving the external **cliamp** player. Useful when
-`[music].enabled`; otherwise it shows a clear "enable in config" message. All
-controls are crash-safe and now-playing is polled off the UI thread.
-
-| Key | Action |
-|---|---|
-| `Space` | Play / pause |
-| `n` / `p` | Next / previous track |
-| `[` / `]` (or `←` / `→`) | Seek − / ＋ (step = `[music].seek_seconds`, default 5s) |
-| `+` / `-` | Volume up / down (dB step) |
-| `z` | Toggle **shuffle** |
-| `x` | Cycle **repeat** (off → all → one) |
-| `l` | Focus the **Play·l·ists** list — `Enter` loads + **plays** the highlighted playlist |
-| `k` | Focus the **Trac·k·s** list — `Enter` queues & **plays** that song |
-| `r` | Refresh now-playing + lists |
-
-The screen shows now-playing with a progress/seek bar and shuffle/repeat/volume
-flags, your saved **playlists** (Enter plays the whole playlist), and the **tracks**
-of the highlighted playlist (Enter queues & plays one song). Arrowing through
-playlists updates the Tracks pane. (`r` refreshes; it's not a transport key.)
-
-On a **narrow terminal** the two panes stack vertically (Textual breakpoints);
-they sit side-by-side when there's room.
 
 ## Kanban
 
