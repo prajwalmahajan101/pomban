@@ -1,0 +1,14 @@
+# Development dependencies (includes base.in).
+# Compile with: pip-compile requirements/dev.in -o requirements/dev.txt
+# Mirrors [project.optional-dependencies].dev in pyproject.toml.
+
+-r base.in
+
+pytest>=8
+pytest-asyncio>=0.23
+ruff==0.15.16
+mypy>=1.11
+pre-commit>=3.7
+pip-tools>=7
+build>=1.2
+twine>=5

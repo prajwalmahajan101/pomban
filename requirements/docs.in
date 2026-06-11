@@ -1,0 +1,7 @@
+# Documentation site dependencies.
+# Compile with: pip-compile requirements/docs.in -o requirements/docs.txt
+# Mirrors [project.optional-dependencies].docs in pyproject.toml.
+
+mkdocs>=1.6
+mkdocs-material>=9.5
+pymdown-extensions>=10
