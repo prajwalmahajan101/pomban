@@ -73,6 +73,7 @@ class KanbanScreen(AppScreen):
     .column.-over-wip > .column-title { background: $error; color: $text; text-style: bold; }
     .column-title { background: $panel; padding: 0 1; }
     .column-body { height: 1fr; }
+    .board-framing { dock: top; padding: 0 1; background: $panel; color: $text; }
     #kanban-input { dock: bottom; }
     /* Responsive: trim spacing on a narrow terminal so all 3 columns stay usable
        (kept side-by-side — the board scrolls horizontally if truly too small). */
@@ -127,6 +128,7 @@ class KanbanScreen(AppScreen):
 
     def compose(self) -> ComposeResult:
         yield from self.compose_header()
+        yield Static("", id="kanban-framing", classes="board-framing")
         with Horizontal(id="board"):
             for status in COLUMNS:
                 with Vertical(classes="column", id=f"col-{status}"):
@@ -177,27 +179,40 @@ class KanbanScreen(AppScreen):
                     )
                 )
             self._update_column_title(status, shown=len(tasks), total=total)
-        # Update header to show active filter
-        try:
-            label = self.app.active_project_label()
-            sprint_label = None
-            if sprint_id is not None:
-                try:
-                    sprint_label = self.app.db.get_sprint(sprint_id).name
-                except Exception:
-                    sprint_label = None
-            tag_parts = []
-            if label:
-                tag_parts.append(f"[reverse {self.app.active_project_color()}] {label} [/]")
-            if sprint_label:
-                tag_parts.append(f"[bright_yellow]▸ {sprint_label}[/]")
-            "  ".join(tag_parts)
-            with contextlib.suppress(Exception):
-                self.sub_title = label or ""
-        except Exception:
-            pass
+        self._update_framing(sprint_id)
         self._clamp_cursor()
         self._paint_cursor()
+
+    def _update_framing(self, sprint_id: int | None) -> None:
+        proj_label = self.app.active_project_label()
+        plain = "All tasks"
+        if sprint_id is not None:
+            try:
+                sp = self.app.db.get_sprint(sprint_id)
+                prog = self.app.db.sprint_progress(sprint_id)
+            except Exception:
+                sp = None
+                prog = None
+            if sp is not None and prog is not None:
+                target = prog["target"]
+                if target > 0:
+                    suffix = f"({prog['completed']}/{target} · {prog['days_left']} days left)"
+                else:
+                    suffix = f"({prog['days_left']} days left)"
+                framing = f"[b]Sprint board[/]  ·  {sp.name} {suffix}"
+                plain = f"Sprint board · {sp.name} {suffix}"
+            else:
+                framing = "[b]Sprint board[/]  ·  —"
+                plain = "Sprint board · —"
+        elif proj_label:
+            framing = f"[b]Project board[/]  ·  {proj_label}"
+            plain = f"Project board · {proj_label}"
+        else:
+            framing = "[b]All tasks[/]"
+        with contextlib.suppress(Exception):
+            self.query_one("#kanban-framing", Static).update(framing)
+        with contextlib.suppress(Exception):
+            self.sub_title = plain
 
     # ---------- WIP limits + helpers ----------
     def _wip_limit(self, status: str) -> int:
