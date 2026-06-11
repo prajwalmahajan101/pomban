@@ -1,4 +1,4 @@
-site_name: pomodoro
+site_name: pomban
 site_description: A keyboard-driven Pomodoro TUI with kanban, projects, sprints, and local-first SQLite persistence.
 site_url: https://prajwalmahajan101.github.io/pomban/
 repo_url: https://github.com/prajwalmahajan101/pomban

@@ -3,9 +3,10 @@ requires = ["setuptools>=68", "wheel"]
 build-backend = "setuptools.build_meta"
 
 [project]
-name = "pomodoro"
+name = "pomban"
 version = "0.1.0"
-description = "Pomodoro dashboard TUI with tasks and stats"
+description = "Project-management TUI that runs on pomodoros"
+keywords = ["tui", "textual", "pomodoro", "kanban", "sprint", "project-management", "productivity"]
 requires-python = ">=3.11"
 license = "MIT"
 authors = [{ name = "Prajwal Mahajan", email = "prajwal.mahajan101@gmail.com" }]
@@ -30,7 +31,7 @@ docs = [
 ]
 
 [project.scripts]
-pomodoro = "pomodoro.__main__:main"
+pomban = "pomban.__main__:main"
 
 [tool.setuptools.packages.find]
 where = ["src"]
