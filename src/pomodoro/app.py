@@ -472,6 +472,7 @@ class PomodoroApp(App):
             try:
                 project_name = self.db.get_project(task.project_id).name
             except Exception:
+                log.exception("loading project %s for edit failed", task.project_id)
                 project_name = None
         self.push_screen(
             EditTaskModal(task, project_name=project_name),
@@ -529,6 +530,7 @@ class PomodoroApp(App):
             try:
                 task_title = self.db.get_task(int(task_id_str)).title
             except Exception:
+                log.exception("loading pending task %s for resume failed", task_id_str)
                 task_title = None
         self.push_screen(
             ResumePrompt(task_title, remaining),
@@ -551,6 +553,7 @@ class PomodoroApp(App):
             try:
                 self.active_task = self.db.get_task(int(task_id_str))
             except Exception:
+                log.exception("restoring active task %s on resume failed", task_id_str)
                 self.active_task = None
         self.engine.restore(Phase(phase_str), remaining, running=True, now=time.monotonic())
         self.current_session_id = sid
@@ -651,6 +654,7 @@ class PomodoroApp(App):
             try:
                 label = self.db.get_project(int(result)).name
             except Exception:
+                log.exception("loading project %s for picker label failed", result)
                 label = "project"
         try:
             self.notify(f"Project filter: {label}", timeout=2)
@@ -743,7 +747,7 @@ class PomodoroApp(App):
             try:
                 save_config(self.config, self.config_path)
             except Exception:
-                pass
+                log.exception("persisting auto_advance toggle failed")
 
     def action_cycle_theme(self) -> None:
         self._theme_idx = (self._theme_idx + 1) % len(THEMES)
@@ -757,4 +761,4 @@ class PomodoroApp(App):
             try:
                 save_config(self.config, self.config_path)
             except Exception:
-                pass
+                log.exception("persisting theme change failed")
