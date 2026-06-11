@@ -6,7 +6,7 @@ from rich.markup import escape
 from textual.app import ComposeResult
 from textual.binding import Binding
 from textual.containers import Horizontal, Vertical
-from textual.widgets import Footer, Header, Input, ListItem, ListView, Static
+from textual.widgets import Footer, Input, ListItem, ListView, Static
 
 from pomban.core.models import Task
 from pomban.screens.base import AppScreen
@@ -86,7 +86,7 @@ class DashboardScreen(AppScreen):
     ]
 
     def compose(self) -> ComposeResult:
-        yield Header(show_clock=True)
+        yield from self.compose_header()
         yield StatsStrip(id="stats")
         with Horizontal(id="main"):
             with Vertical(id="timer-pane"):
@@ -106,6 +106,7 @@ class DashboardScreen(AppScreen):
         self.query_one("#task-list", ListView).focus()
 
     def refresh_view(self) -> None:
+        super().refresh_view()
         self.refresh_tasks()
         self.refresh_stats()
         self.refresh_timer()

@@ -5,7 +5,7 @@ from datetime import date, timedelta
 
 from textual.app import ComposeResult
 from textual.binding import Binding
-from textual.widgets import DataTable, Footer, Header, Input, Static
+from textual.widgets import DataTable, Footer, Input, Static
 
 from pomban.screens.base import AppScreen
 
@@ -44,7 +44,7 @@ class SprintsScreen(AppScreen):
         self._target_id: int | None = None
 
     def compose(self) -> ComposeResult:
-        yield Header(show_clock=True)
+        yield from self.compose_header()
         yield Static(
             "[b]Sprints[/]  [dim]n=new  a=activate  c=complete  x=cancel  d=delete  e=target  g=goal  enter=filter[/]",
             id="sprint-help",
@@ -59,6 +59,7 @@ class SprintsScreen(AppScreen):
         self.refresh_sprints()
 
     def refresh_view(self) -> None:
+        super().refresh_view()
         self.refresh_sprints()
 
     def refresh_sprints(self) -> None:

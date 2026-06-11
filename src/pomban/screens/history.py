@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from textual.app import ComposeResult
 from textual.binding import Binding
-from textual.widgets import DataTable, Footer, Header
+from textual.widgets import DataTable, Footer
 
 from pomban.screens.base import AppScreen
 
@@ -25,7 +25,7 @@ class HistoryScreen(AppScreen):
     ]
 
     def compose(self) -> ComposeResult:
-        yield Header(show_clock=True)
+        yield from self.compose_header()
         yield DataTable(id="hist")
         yield Footer()
 
@@ -33,6 +33,7 @@ class HistoryScreen(AppScreen):
         self.refresh_history()
 
     def refresh_view(self) -> None:
+        super().refresh_view()
         self.refresh_history()
 
     def refresh_history(self) -> None:

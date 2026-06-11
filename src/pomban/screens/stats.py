@@ -4,7 +4,7 @@ from rich.markup import escape
 from textual.app import ComposeResult
 from textual.binding import Binding
 from textual.containers import Vertical, VerticalScroll
-from textual.widgets import Footer, Header, Static
+from textual.widgets import Footer, Static
 
 from pomban.screens.base import AppScreen
 from pomban.widgets.bar_chart import BarChart, VerticalBarChart
@@ -47,7 +47,7 @@ class StatsScreen(AppScreen):
         self.granularity = "day"
 
     def compose(self) -> ComposeResult:
-        yield Header(show_clock=True)
+        yield from self.compose_header()
         with VerticalScroll():
             with Vertical(classes="section"):
                 yield Static(
@@ -95,6 +95,7 @@ class StatsScreen(AppScreen):
             self.refresh_stats_screen()
 
     def refresh_view(self) -> None:
+        super().refresh_view()
         self.refresh_stats_screen()
 
     def refresh_stats_screen(self) -> None:

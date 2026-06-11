@@ -5,7 +5,7 @@ import contextlib
 from textual.app import ComposeResult
 from textual.binding import Binding
 from textual.containers import Horizontal, Vertical, VerticalScroll
-from textual.widgets import Footer, Header, Input, Static
+from textual.widgets import Footer, Input, Static
 
 from pomban.core.models import Task
 from pomban.screens.base import AppScreen
@@ -126,7 +126,7 @@ class KanbanScreen(AppScreen):
         self._input_mode: str | None = None
 
     def compose(self) -> ComposeResult:
-        yield Header(show_clock=True)
+        yield from self.compose_header()
         with Horizontal(id="board"):
             for status in COLUMNS:
                 with Vertical(classes="column", id=f"col-{status}"):
@@ -144,6 +144,7 @@ class KanbanScreen(AppScreen):
         self.query_one("#kanban-input", Input).can_focus = True
 
     def refresh_view(self) -> None:
+        super().refresh_view()
         self.refresh_board()
 
     # ---------- render ----------

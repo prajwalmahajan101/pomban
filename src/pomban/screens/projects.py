@@ -4,7 +4,7 @@ import contextlib
 
 from textual.app import ComposeResult
 from textual.binding import Binding
-from textual.widgets import DataTable, Footer, Header, Input, Static
+from textual.widgets import DataTable, Footer, Input, Static
 
 from pomban.screens.base import AppScreen
 
@@ -55,7 +55,7 @@ class ProjectsScreen(AppScreen):
         self._target_id: int | None = None
 
     def compose(self) -> ComposeResult:
-        yield Header(show_clock=True)
+        yield from self.compose_header()
         yield Static(
             "[b]Projects[/]  [dim]n=new  r=rename  c=recolor  a=archive  d=delete  enter=filter[/]",
             id="proj-help",
@@ -70,6 +70,7 @@ class ProjectsScreen(AppScreen):
         self.refresh_projects()
 
     def refresh_view(self) -> None:
+        super().refresh_view()
         self.refresh_projects()
 
     def refresh_projects(self) -> None:
