@@ -89,6 +89,9 @@ class PomodoroApp(App):
             sessions=self.sessions,
             coord=self.coord,
             timer=self.engine,
+            plugin_registry=plugin_registry,
+            hooks=self.config.hooks,
+            run_hook=run_hook,
         )
         # Filters persisted in config_kv: ui.active_project / ui.active_sprint
         self.filters = FilterState(self.db)
@@ -307,18 +310,7 @@ class PomodoroApp(App):
         self._refresh_all()
 
     def _finalize_multi_complete(self, sid: int | None, actual: int, ids: list[int] | None) -> None:
-        ids = ids or []
-        if sid is not None:
-            self.sessions.end(sid, actual_seconds=actual, completed=True)
-        self.current_session_id = None
-        self.session_start_monotonic = None
-        done = set(ids)
-        for tid in done:
-            self.db.set_task_status(tid, "done")
-        # Completed tasks leave the active set; the rest stay in Doing.
-        self.active_tasks = [t for t in self.active_tasks if t.id not in done]
-        self.engine.confirm_advance(time.monotonic())
-        self._log_new_session()
+        self._facade.finalize_multi_complete(sid, actual, ids)
         self._refresh_all()
 
     def _notify_phase_change(self, completed_phase: Phase) -> None:
@@ -345,31 +337,10 @@ class PomodoroApp(App):
             self.screen.styles.animate("opacity", 1.0, duration=0.2)
 
     def _fire_phase_hooks(self, starting: bool, phase: Phase) -> None:
-        hooks = self.config.hooks
-        task_title = self.active_task.title if self.active_task else ""
-        env = {
-            "POMODORO_PHASE": phase.value,
-            "POMODORO_TASK_TITLE": task_title,
-            "POMODORO_EVENT": "start" if starting else "end",
-        }
-        if phase == Phase.FOCUS:
-            cmd = hooks.on_focus_start if starting else hooks.on_focus_end
-        else:
-            cmd = hooks.on_break_start if starting else hooks.on_break_end
-        run_hook(cmd, env)
-        # In-process plugins (F19)
-        reg = plugin_registry()
-        if starting:
-            reg.fire("on_phase_started", phase.value, task_title or None)
-        else:
-            reg.fire("on_phase_completed", phase.value, task_title or None, True)
+        self._facade.fire_phase_hooks(starting=starting, phase=phase)
 
     def _log_new_session(self) -> None:
-        if self.engine.phase == Phase.IDLE:
-            return
-        self._fire_phase_hooks(starting=True, phase=self.engine.phase)
-        task_ids = [t.id for t in self.active_tasks] if self.engine.phase == Phase.FOCUS else []
-        self.coord.begin(task_ids)
+        self._facade.log_new_session()
 
     # ---------- public API used by screens ----------
     def start_focus_on(self, task: Task) -> None:
@@ -377,16 +348,8 @@ class PomodoroApp(App):
 
     def start_focus_on_many(self, tasks: list[Task]) -> None:
         """Start one focus session covering one or more tasks (Mode B)."""
-        if not tasks:
+        if not self._facade.start_focus_on_many(tasks):
             return
-        self.active_tasks = list(tasks)
-        self.active_chip_index = 0
-        for t in tasks:
-            if t.status == "todo":
-                self.db.set_task_status(t.id, "doing")
-        self.engine.reset()
-        self.engine.start(time.monotonic())
-        self._log_new_session()
         # If we're on Kanban, jump to Dashboard so the timer is visible.
         if self.screen.__class__.__name__ != "DashboardScreen":
             with contextlib.suppress(Exception):
