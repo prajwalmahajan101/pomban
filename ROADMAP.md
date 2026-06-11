@@ -8,27 +8,43 @@ a glance.
 The roadmap is **not** a promise of dates. It is a promise of order:
 later phases assume the earlier ones landed.
 
+## Phase ↔ tag map
+
+| Phase | Tag | Status |
+|---|---|---|
+| Phase 1 — Timer + Dashboard | [`v0.1.0`](https://github.com/prajwalmahajan101/pomban/releases/tag/v0.1.0) | shipped |
+| Phase 2 — Boards + Filters | [`v0.1.0`](https://github.com/prajwalmahajan101/pomban/releases/tag/v0.1.0) | shipped |
+| Phase 3 — Cleanup + Closures | (unreleased; lands on `main`) | merged |
+| Phase 4 — Release prep | `v0.2.0` (planned) | in progress |
+| Phase 5 — Notifications + Sound polish | `v0.3.0` (planned) | planned |
+| Phase 6 — Sync hardening | `v0.4.0` (planned) | planned |
+| Phase 7 — Plugin surface | `v1.0.0` (planned) | planned |
+
+Phases 1 and 2 shipped as a single `v0.1.0` cut because the project
+was solo and the kanban / sprints work landed before the first tag
+was pushed. From `v0.2.0` onward, one phase = one tag.
+
 ---
 
-## Phase 1 — Timer + Dashboard `(done)`
+## Phase 1 — Timer + Dashboard `(shipped — v0.1.0)`
 
 Pomodoro engine, dashboard screen, task list, presets, themes, hooks,
 plugin loader, structured logger.
 
-## Phase 2 — Boards + Filters `(done)`
+## Phase 2 — Boards + Filters `(shipped — v0.1.0)`
 
 Kanban board with priorities + WIP limits + visual-mode bulk actions
 + card detail; project + sprint pickers; sprint screen; stats and
 history screens; lunch-break window + `Shift+L` long-pause.
 
-## Phase 3 — Cleanup + Closures `(done)`
+## Phase 3 — Cleanup + Closures `(merged — unreleased)`
 
 Music / cliamp subsystem removal; six meaningful swallowed-except
 sites routed to `log.exception`; ISSUE-001 closed as won't-fix
 (see [ADR-0002](https://github.com/prajwalmahajan101/pomban/blob/main/docs/adr/0002-single-sqlite-connection.md));
-ISSUE-005 / ISSUE-012 resolved.
+ISSUE-005 / ISSUE-012 resolved. Folded into the next tagged release.
 
-## Phase 4 — Release prep `(in progress)`
+## Phase 4 — Release prep `(in progress — targets v0.2.0)`
 
 **Goal.** Bring the repo to PyPI-ready quality and ship `0.1.0`.
 
@@ -57,7 +73,7 @@ ISSUE-005 / ISSUE-012 resolved.
 - `python -m build` produces a clean sdist + wheel; `twine check`
   passes.
 
-## Phase 5 — Notifications + Sound polish `(planned)`
+## Phase 5 — Notifications + Sound polish `(planned — targets v0.3.0)`
 
 **Goal.** Make Pomodoro feel as native as a desktop timer.
 
@@ -78,7 +94,7 @@ ISSUE-005 / ISSUE-012 resolved.
 - `pomodoro` launches a focus session on macOS / Linux / Windows
   Terminal and fires both desktop + sound + in-TUI notifications.
 
-## Phase 6 — Sync hardening `(planned)`
+## Phase 6 — Sync hardening `(planned — targets v0.4.0)`
 
 **Goal.** Make the `git_sync` plugin a reliable cross-device sync
 story.
@@ -98,7 +114,7 @@ story.
 - The author can run Pomodoro on a laptop and a desktop, switch
   between them, and never lose a session.
 
-## Phase 7 — Plugin surface `(planned)`
+## Phase 7 — Plugin surface `(planned — targets v1.0.0)`
 
 **Goal.** Open enough of the engine for community plugins.
 
