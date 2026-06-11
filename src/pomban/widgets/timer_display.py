@@ -34,6 +34,7 @@ class TimerDisplay(Static):
     active_task: reactive[str] = reactive("")
     active_tasks: reactive[list[str]] = reactive(list)
     active_index: reactive[int] = reactive(0)
+    sprint_chip: reactive[str] = reactive("")
 
     DEFAULT_CSS = """
     TimerDisplay {
@@ -60,6 +61,10 @@ class TimerDisplay(Static):
             task_line = (
                 f"[dim]on:[/dim] [b]{escape(self.active_task)}[/b]" if self.active_task else ""
             )
-        return (
+        sprint_line = (
+            f"[dim]·[/dim] [yellow]{escape(self.sprint_chip)}[/]" if self.sprint_chip else ""
+        )
+        body = (
             f"[{color}]{label}[/]\n\n[bold]{time_str}[/]\n\n{dots}   [dim]{state}[/]\n{task_line}"
         )
+        return f"{body}\n{sprint_line}" if sprint_line else body

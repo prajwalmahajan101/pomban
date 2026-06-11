@@ -93,7 +93,9 @@ class DashboardScreen(AppScreen):
                 yield Static(panel_title("Timer", "i"), classes="pane-title")
                 yield TimerDisplay(id="timer")
             with Vertical(id="task-pane"):
-                yield Static(panel_title("Tasks", "a"), classes="pane-title")
+                yield Static(
+                    panel_title("Tasks", "a"), id="task-pane-title", classes="pane-title"
+                )
                 yield ListView(id="task-list")
                 yield Input(placeholder="Add a task — use #tag inline", id="task-input")
         yield Footer()
@@ -122,8 +124,32 @@ class DashboardScreen(AppScreen):
         td.active_task = self.app.active_task.title if self.app.active_task else ""
         td.active_tasks = [t.title for t in self.app.active_tasks]
         td.active_index = self.app.active_chip_index
+        td.sprint_chip = self._sprint_chip_text()
+
+    def _sprint_chip_text(self) -> str:
+        sid = self.app.active_sprint_id
+        if sid is None:
+            return ""
+        try:
+            sp = self.app.db.get_sprint(sid)
+            prog = self.app.db.sprint_progress(sid)
+        except Exception:
+            return ""
+        target = prog["target"]
+        if target <= 0:
+            return f"Sprint: {sp.name}"
+        return f"Sprint: {sp.name} ({prog['completed']}/{target})"
+
+    def _task_pane_title(self) -> str:
+        if self.app.active_sprint_id is not None:
+            return panel_title("Sprint queue", "a")
+        if self.app.project_filter.scoped_project_id is not None:
+            return panel_title("Project queue", "a")
+        return panel_title("All tasks", "a")
 
     def refresh_tasks(self) -> None:
+        with contextlib.suppress(Exception):
+            self.query_one("#task-pane-title", Static).update(self._task_pane_title())
         lv = self.query_one("#task-list", ListView)
         lv.clear()
         pf = self.app.project_filter_for_db()
