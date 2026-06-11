@@ -9,7 +9,7 @@ from pathlib import Path
 
 from pomban.core.models import Project, Sprint, Task
 
-SCHEMA_VERSION = 9
+SCHEMA_VERSION = 10
 
 # Sentinel: distinguishes "no project filter" from "Inbox only" (project_id IS NULL).
 _NO = object()
@@ -236,9 +236,19 @@ class DB:
                 ALTER TABLE tasks ADD COLUMN priority INTEGER NOT NULL DEFAULT 0;
                 """
             )
-            self.conn.execute(f"PRAGMA user_version = {SCHEMA_VERSION}")
+            # Literal 9 (not SCHEMA_VERSION) so each block is atomic: a later
+            # block crashing can't leave this one marked done.
+            self.conn.execute("PRAGMA user_version = 9")
             self.conn.commit()
             version = 9
+        if version < 10:
+            # Free-form notes captured at end-of-session for the session-end UI.
+            self.conn.execute(
+                "ALTER TABLE sessions ADD COLUMN notes TEXT NOT NULL DEFAULT ''"
+            )
+            self.conn.execute("PRAGMA user_version = 10")
+            self.conn.commit()
+            version = 10
 
     # ---------- tasks ----------
     def add_task(
@@ -603,6 +613,84 @@ class DB:
             (since,),
         ).fetchall()
         return [(r["name"], r["color"], r["n"], int(r["secs"] or 0)) for r in rows]
+
+    def minutes_per_tag(
+        self, since_days: int = 30, project_id: int | None = None
+    ) -> list[tuple[str, int]]:
+        """Return [(tag, minutes), ...] for completed focus sessions over the last N days.
+
+        Tags live as comma-separated strings on tasks.tags. A multi-tag task
+        credits its full session duration to every tag (same attribution
+        rule as ``sessions_per_project``). Sessions on tagless tasks are
+        excluded. Sorted by minutes descending.
+        """
+        since = (date.today() - timedelta(days=since_days)).isoformat()
+        sql = (
+            "SELECT t.tags AS tags, s.actual_seconds AS secs"
+            " FROM sessions s"
+            " JOIN session_tasks st ON st.session_id=s.id"
+            " JOIN tasks t ON t.id=st.task_id"
+            " WHERE s.kind='focus' AND s.completed=1"
+            " AND substr(s.started_at,1,10) >= ?"
+        )
+        params: list = [since]
+        if project_id is not None:
+            sql += " AND t.project_id=?"
+            params.append(project_id)
+        rows = self.conn.execute(sql, params).fetchall()
+        totals: dict[str, int] = {}
+        for r in rows:
+            secs = int(r["secs"] or 0)
+            for tag in (r["tags"] or "").split(","):
+                tag = tag.strip()
+                if not tag:
+                    continue
+                totals[tag] = totals.get(tag, 0) + secs
+        return sorted(
+            ((tag, round(secs / 60)) for tag, secs in totals.items()),
+            key=lambda t: t[1],
+            reverse=True,
+        )
+
+    def sprint_progress(self, sprint_id: int) -> dict:
+        """Lean sprint-progress summary: target, completed, pct, days_left, pace, on_track.
+
+        Used by the M2 context header, the M3 sprint runner, and the M4
+        stats screen. ``sprint_burndown`` stays for the per-day series the
+        burndown chart needs; this is the single-number summary the rest
+        of the app consumes.
+        """
+        sp = self.get_sprint(sprint_id)
+        target = sp.pomodoro_target or 0
+        row = self.conn.execute(
+            "SELECT COUNT(DISTINCT s.id) AS n"
+            " FROM sessions s JOIN session_tasks st ON st.session_id=s.id"
+            " JOIN tasks t ON t.id=st.task_id"
+            " WHERE s.kind='focus' AND s.completed=1 AND t.sprint_id=?",
+            (sprint_id,),
+        ).fetchone()
+        completed = int(row["n"] or 0)
+        pct = round(100 * completed / target) if target > 0 else 0
+        try:
+            start = date.fromisoformat(sp.start_date)
+            end = date.fromisoformat(sp.end_date)
+            today = date.today()
+            days_left = max(0, (end - today).days)
+            total_days = max(1, (end - start).days)
+            elapsed = max(0, min(total_days, (today - start).days))
+            ideal_done = target * elapsed / total_days if target else 0
+            pace = completed - round(ideal_done)
+        except (ValueError, TypeError):
+            days_left = 0
+            pace = 0
+        return {
+            "target": target,
+            "completed": completed,
+            "pct": pct,
+            "days_left": days_left,
+            "pace": pace,
+            "on_track": pace >= 0,
+        }
 
     def task_actual_pomodoros(self, task_id: int) -> int:
         """Count completed focus sessions linked to this task."""

@@ -42,28 +42,46 @@ STATS_SIZE = (180, 45)
 
 def _seed(db: DB) -> None:
     """Populate a fresh DB with a handful of representative rows."""
-    p_inbox = db.add_project("inbox", color="white")
-    p_docs = db.add_project("docs", color="cyan")
-    p_release = db.add_project("v1.0-launch", color="magenta")
-
-    sprint_id = db.create_sprint(
-        project_id=p_release,
-        name="release-week",
-        target_pomodoros=12,
-    )
+    p_inbox = db.add_project("inbox", color="white").id
+    p_docs = db.add_project("docs", color="cyan").id
+    p_release = db.add_project("v1.0-launch", color="magenta").id
 
     today = dt.date.today()
-    db.add_task("Write release notes", project_id=p_docs, tags="docs", est=2)
-    db.add_task("Wire OAuth flow", project_id=p_release, sprint_id=sprint_id, est=3,
-                priority="high", due=today.isoformat())
-    db.add_task("Email Dana", project_id=p_inbox)
-    db.add_task("Fix the kanban refresh bug", project_id=p_release, sprint_id=sprint_id,
-                est=1, priority="med")
+    sprint = db.add_sprint(
+        project_id=p_release,
+        name="release-week",
+        start_date=today.isoformat(),
+        end_date=(today + dt.timedelta(days=14)).isoformat(),
+        goal="cut v1.0",
+        pomodoro_target=12,
+        status="active",
+    )
 
-    # A few completed sessions so the stats screen isn't empty.
-    for hours_ago in (1, 2, 3, 5, 24, 25, 48):
-        ts = dt.datetime.now() - dt.timedelta(hours=hours_ago)
-        db.log_completed_session(planned_seconds=1500, actual_seconds=1500, ended_at=ts)
+    notes = db.add_task(
+        "Write release notes", project_id=p_docs, tags="docs", estimated_pomodoros=2
+    )
+    oauth = db.add_task(
+        "Wire OAuth flow",
+        project_id=p_release,
+        sprint_id=sprint.id,
+        estimated_pomodoros=3,
+        priority=3,
+        due_date=today.isoformat(),
+    )
+    db.add_task("Email Dana", project_id=p_inbox)
+    kbug = db.add_task(
+        "Fix the kanban refresh bug",
+        project_id=p_release,
+        sprint_id=sprint.id,
+        estimated_pomodoros=1,
+        priority=2,
+    )
+
+    # A few completed focus sessions so the stats screen isn't empty.
+    # Sessions are timestamped at insert time; capture is "now" anyway.
+    for task in (notes, oauth, oauth, kbug, kbug, oauth, notes):
+        sid = db.start_session("focus", planned_seconds=1500, task_ids=[task.id])
+        db.end_session(sid, actual_seconds=1500, completed=True)
 
 
 async def _capture(app: PomodoroApp, size: tuple[int, int], path: Path) -> None:
