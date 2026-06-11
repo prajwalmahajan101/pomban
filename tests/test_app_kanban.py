@@ -116,6 +116,9 @@ async def test_kanban_new_card_input_adds_to_current_column():
                 await pilot.press(ch)
             await pilot.press("enter")
             await pilot.pause()
+            # A3: with no project context, the picker fires; pick Inbox.
+            app.screen.dismiss(0)
+            await pilot.pause()
             tasks = db.list_tasks_by_status()
             assert len(tasks["doing"]) == 1
             assert tasks["doing"][0].title == "Quick"

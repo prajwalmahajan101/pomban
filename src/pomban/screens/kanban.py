@@ -578,15 +578,18 @@ class KanbanScreen(AppScreen):
         # default: add a new card into the focused column
         if not value:
             return
-        task = self.app.add_task_from_input(value)
         target_status = COLUMNS[self.col]
-        if target_status != "todo":
-            self.app.db.move_task(task.id, target_status)
-        self.refresh_board()
-        # Move cursor to the new card
-        tasks = self._column_tasks(self.col)
-        for i, t in enumerate(tasks):
-            if t.id == task.id:
-                self.row = i
-                break
-        self._paint_cursor()
+        target_col = self.col
+
+        def _after_create(task) -> None:
+            if target_status != "todo":
+                self.app.db.move_task(task.id, target_status)
+            self.refresh_board()
+            tasks = self._column_tasks(target_col)
+            for i, t in enumerate(tasks):
+                if t.id == task.id:
+                    self.row = i
+                    break
+            self._paint_cursor()
+
+        self.app.submit_new_task(value, on_created=_after_create)

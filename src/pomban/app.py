@@ -364,6 +364,81 @@ class PomodoroApp(App):
                 self.switch_screen("dashboard")
         self._refresh_all()
 
+    def submit_new_task(self, text: str, on_created=None) -> None:
+        """Top-level entry for screen task-add inputs.
+
+        If the text carries an explicit ``@project``, an active project filter
+        is set, or an active sprint is set, the task is created synchronously
+        (existing add_task_from_input path). Otherwise the project picker is
+        pushed first; the task is created from the picker callback.
+        """
+        from pomban.core.task_input import parse_task_input
+
+        parsed = parse_task_input(text)
+        has_context = (
+            bool(parsed.project_name)
+            or self.project_filter.scoped_project_id is not None
+            or self.active_sprint_id is not None
+        )
+        if has_context:
+            task = self.add_task_from_input(text)
+            self._announce_task_created(task)
+            if on_created is not None:
+                with contextlib.suppress(Exception):
+                    on_created(task)
+            self._refresh_all()
+            return
+        self._pending_task = (text, on_created)
+        self.action_pick_project_for_task()
+
+    def action_pick_project_for_task(self) -> None:
+        from pomban.screens.project_picker import ProjectPickerModal
+
+        self.push_screen(
+            ProjectPickerModal(self.db.list_projects(), None),
+            self._on_project_picked_for_task,
+        )
+
+    def _on_project_picked_for_task(self, result) -> None:
+        pending = getattr(self, "_pending_task", None)
+        self._pending_task = None
+        if result is None or pending is None:
+            return
+        text, on_created = pending
+        if result == -1 or result == 0:
+            project_id = None
+        else:
+            project_id = int(result)
+        from pomban.core.task_input import parse_task_input
+
+        parsed = parse_task_input(text)
+        sprint_id = None
+        if parsed.sprint_name:
+            sprint_id = self.db.get_or_create_sprint(project_id, parsed.sprint_name).id
+        task = self.db.add_task(
+            parsed.title,
+            tags=parsed.tags_csv,
+            estimated_pomodoros=parsed.estimate,
+            project_id=project_id,
+            sprint_id=sprint_id,
+        )
+        self._announce_task_created(task)
+        if on_created is not None:
+            with contextlib.suppress(Exception):
+                on_created(task)
+        self._refresh_all()
+
+    def _announce_task_created(self, task: Task) -> None:
+        if task.project_id is None:
+            label = "Inbox"
+        else:
+            try:
+                label = self.db.get_project(task.project_id).name
+            except Exception:
+                label = "project"
+        with contextlib.suppress(Exception):
+            self.notify(f"Created in {label}", timeout=2)
+
     def add_task_from_input(self, text: str) -> Task:
         """Create a task from the inline-metadata mini-syntax.
 

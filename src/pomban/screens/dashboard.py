@@ -206,9 +206,11 @@ class DashboardScreen(AppScreen):
         title = event.value.strip()
         if not title:
             return
-        self.app.add_task_from_input(title)
         event.input.value = ""
-        self.query_one("#task-list", ListView).focus()
+        self.app.submit_new_task(
+            title,
+            on_created=lambda _t: self.query_one("#task-list", ListView).focus(),
+        )
 
     def selected_task(self) -> Task | None:
         lv = self.query_one("#task-list", ListView)
