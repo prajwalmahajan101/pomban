@@ -332,7 +332,7 @@ db = DB(db_path)  # migration runs here
 
 ### Adding tests for a new phase / feature
 
-Follow the per-phase test budget in [the plan file](../../.claude/plans/mutable-waddling-puppy.md) §12.5. Approximate split: 2 unit + 2 DB + 2 integration per feature.
+Aim for a roughly even split per feature: 2 unit + 2 DB + 2 integration.
 
 ---
 
@@ -354,7 +354,7 @@ Before opening a PR (or merging your own branch):
 
 - [ ] `pytest -q` passes
 - [ ] New features have at least one unit/DB test and one integration test
-- [ ] Public-facing changes are reflected in `docs/user-guide.md` and `docs/keybindings.md`
+- [ ] Public-facing changes are reflected in `user-guide.md` and `keybindings.md`
 - [ ] Schema changes have a migration block + a migration test
 - [ ] Shift-modified keybindings include at least one symbol alias (Kitty et al. eat them)
 - [ ] No new dependencies unless they earn their weight (current deps: `textual`)

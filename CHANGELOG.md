@@ -100,13 +100,13 @@ feature shipped on `main` to date.
 
 ## Resolved code-review issues (cumulative)
 
-Tracked in [`.code_review/code_review_issues.md`](.code_review/code_review_issues.md).
+Tracked in [`.code_review/code_review_issues.md`](https://github.com/prajwalmahajan101/pomban/blob/main/.code_review/code_review_issues.md).
 
 - **ISSUE-001 — DB writes on the tick path** (won't-fix): mitigations
   stand (cached lunch SELECT, deferred modal push). A dedicated writer
   thread would conflict with the project's single-SQLite-connection
   design. Revisit only if real-world jank is observed. See
-  [ADR-0002](docs/adr/0002-single-sqlite-connection.md).
+  [ADR-0002](https://github.com/prajwalmahajan101/pomban/blob/main/docs/adr/0002-single-sqlite-connection.md).
 - **ISSUE-005 — slim `PomodoroApp`** (resolved): `core/filter_state.py`,
   `core/session_coordinator.py`, and `core/task_input.py` extractions
   all landed. Music removal trimmed the remaining UI-action surface.

@@ -25,7 +25,7 @@ history screens; lunch-break window + `Shift+L` long-pause.
 
 Music / cliamp subsystem removal; six meaningful swallowed-except
 sites routed to `log.exception`; ISSUE-001 closed as won't-fix
-(see [ADR-0002](docs/adr/0002-single-sqlite-connection.md));
+(see [ADR-0002](https://github.com/prajwalmahajan101/pomban/blob/main/docs/adr/0002-single-sqlite-connection.md));
 ISSUE-005 / ISSUE-012 resolved.
 
 ## Phase 4 — Release prep `(in progress)`
@@ -122,17 +122,17 @@ story.
 These have been considered and deferred:
 
 - **Music / cliamp integration.** Removed in Phase 3; the
-  [`code_review_issues.md`](.code_review/code_review_issues.md) entry
+  [`code_review_issues.md`](https://github.com/prajwalmahajan101/pomban/blob/main/.code_review/code_review_issues.md) entry
   documents why. Not coming back.
 - **Multi-user / multi-account.** Pomodoro is per-user, local-first.
   Sync is the only multi-device story.
 - **A web dashboard.** Out of scope by design; the project's identity
   is "terminal-first".
 - **A dedicated SQLite writer thread.** Considered for ISSUE-001 and
-  rejected — see [ADR-0002](docs/adr/0002-single-sqlite-connection.md).
+  rejected — see [ADR-0002](https://github.com/prajwalmahajan101/pomban/blob/main/docs/adr/0002-single-sqlite-connection.md).
 
 ---
 
 The latest snapshot of in-flight work is always in
-[`.code_review/code_review_issues.md`](.code_review/code_review_issues.md).
+[`.code_review/code_review_issues.md`](https://github.com/prajwalmahajan101/pomban/blob/main/.code_review/code_review_issues.md).
 This document is the longer arc.

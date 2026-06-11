@@ -324,7 +324,7 @@ A preset bundles `focus_minutes`, `short_break_minutes`, `long_break_minutes`, a
 
 Press **p** to open the preset picker. Selecting one applies on **the next session** (not the currently running one). To get a preset immediately: press `r` to reset, `p` to pick, `s` to start.
 
-Built-in suggested presets (see `docs/configuration.md` for the file format):
+Built-in suggested presets (see `configuration.md` for the file format):
 
 | Name | Focus / Short / Long | N cycles |
 |---|---|---|
@@ -355,7 +355,7 @@ When a phase ends, up to three channels fire (each independently togglable in co
 2. **Sound** via `paplay` / `aplay` / `ffplay` — first one available. Default sound is `/usr/share/sounds/freedesktop/stereo/complete.oga`.
 3. **In-TUI bell + flash** — works in any terminal, no system deps.
 
-Configurable under `[notifications]` (see `docs/configuration.md`).
+Configurable under `[notifications]` (see `configuration.md`).
 
 ---
 
