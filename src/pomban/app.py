@@ -11,6 +11,7 @@ from pomban.core import log
 from pomban.core.config import Config
 from pomban.core.config import save as save_config
 from pomban.core.db import DB
+from pomban.core.engine import PombanEngine, TickOutcome
 from pomban.core.filter_state import FilterState
 from pomban.core.filters import ProjectFilter
 from pomban.core.models import Task
@@ -85,6 +86,15 @@ class PomodoroApp(App):
         self.active_tasks: list[Task] = []
         self.active_chip_index: int = 0
         self.coord = SessionCoordinator(self.engine, self.db, self.sessions)
+        # PombanEngine facade wraps timer + sessions + coord behind a UI-agnostic
+        # surface. Introduced incrementally — for now only the tick loop reads
+        # from it; the rest of app.py still calls self.engine.* directly.
+        self._facade = PombanEngine(
+            db=self.db,
+            sessions=self.sessions,
+            coord=self.coord,
+            timer=self.engine,
+        )
         # Filters persisted in config_kv: ui.active_project / ui.active_sprint
         self.filters = FilterState(self.db)
         try:
@@ -139,12 +149,17 @@ class PomodoroApp(App):
 
     # ---------- ticking ----------
     def _tick(self) -> None:
-        if not self.engine.running:
-            return
-        events = self.engine.tick(time.monotonic())
-        if events:
-            self._handle_events(events)
+        outcomes = self._facade.tick(time.monotonic())
+        if outcomes:
+            self._dispatch_outcomes(outcomes)
         self._refresh_active_screen_timer()
+
+    def _dispatch_outcomes(self, outcomes: list[TickOutcome]) -> None:
+        for o in outcomes:
+            if o.kind == "ending_soon":
+                self._on_ending_soon()
+            elif o.kind == "phase_completed":
+                self._on_phase_completed()
 
     def _refresh_active_screen_timer(self) -> None:
         try:
