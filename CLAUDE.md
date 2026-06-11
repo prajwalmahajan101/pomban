@@ -1,4 +1,4 @@
-# Pomodoro — Project Conventions
+# pomban — Project Conventions
 
 A keyboard-driven Pomodoro TUI with kanban, projects, sprints, and
 local-first SQLite persistence. Built with Textual.
@@ -35,9 +35,9 @@ extend `AppScreen` and the tick / refresh / nav loop dispatches via
 - `from __future__ import annotations` at the top of every module.
 - Type hints at boundaries (public methods, dataclasses). Mypy isn't
   the gate yet, but the `[tool.mypy]` block is wired up.
-- Module-level import of `from pomodoro.core import log`. Boundary
+- Module-level import of `from pomban.core import log`. Boundary
   catches call `log.exception("<context>")`; the logger writes to a
-  file only (`~/.local/state/pomodoro/pomodoro.log`) so it can't
+  file only (`~/.local/state/pomban/pomban.log`) so it can't
   corrupt the alternate-screen TUI.
 - Errors at system boundaries (DB, hooks, plugins, screen mounts)
   may be caught and logged. **Don't** add blanket

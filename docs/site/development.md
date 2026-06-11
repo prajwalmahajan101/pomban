@@ -54,7 +54,7 @@ Design principles:
 ## Module layout
 
 ```
-src/pomodoro/
+src/pomban/
 ├── __main__.py           # CLI entrypoint (also handles `export` subcommand)
 ├── app.py                # PomodoroApp — the Textual App orchestrator
 ├── notifications.py      # notify-send + sound + hook runner
@@ -162,7 +162,7 @@ Never modify existing migration blocks — only append.
 
 ## The TimerEngine state machine
 
-`src/pomodoro/core/timer_engine.py` is the single source of truth for time logic. ~150 lines, no imports outside stdlib.
+`src/pomban/core/timer_engine.py` is the single source of truth for time logic. ~150 lines, no imports outside stdlib.
 
 ### States
 
@@ -205,7 +205,7 @@ The earlier MVP auto-advanced (focus → break immediately). That made the "did 
 
 ## Adding a new screen
 
-1. Create `src/pomodoro/screens/<your>.py` subclassing `textual.screen.Screen`.
+1. Create `src/pomban/screens/<your>.py` subclassing `textual.screen.Screen`.
 2. Define `BINDINGS` and `compose()`.
 3. Register in `app.py:on_mount`:
 
@@ -252,10 +252,10 @@ Your plugin package's `pyproject.toml`:
 
 ```toml
 [project]
-name = "pomodoro-plugin-myplugin"
+name = "pomban-plugin-myplugin"
 version = "0.1.0"
 
-[project.entry-points."pomodoro.hooks"]
+[project.entry-points."pomban.hooks"]
 mything = "my_module:plugin"
 ```
 
@@ -272,11 +272,11 @@ class plugin:
         ...
 ```
 
-Install with `pip install -e .` in the same venv as `pomodoro` — entry points are discovered on app launch (`PomodoroApp.on_mount` calls `registry().discover()`).
+Install with `pip install -e .` in the same venv as `pomban` — entry points are discovered on app launch (`PomodoroApp.on_mount` calls `registry().discover()`).
 
 ### Safety
 
-Every callback runs inside try/except. Errors are written to `~/.local/state/pomodoro/plugins.log` and **never** propagate to the app. A buggy plugin cannot crash your timer.
+Every callback runs inside try/except. Errors are written to `~/.local/state/pomban/plugins.log` and **never** propagate to the app. A buggy plugin cannot crash your timer.
 
 ### Example
 
@@ -344,7 +344,7 @@ This project doesn't currently target PyPI — it's a personal-use TUI. If you w
 2. `twine upload dist/*`.
 3. Tag the commit (`git tag v0.1.0 && git push --tags`).
 
-If you fork it and want to redistribute, please rename the entry point (`pomodoro` is a generic command, your fork should pick something distinct like `pomod`, `tuipom`, etc.) and update `pyproject.toml` accordingly.
+If you fork it and want to redistribute, please rename the entry point (`pomban` is a generic command, your fork should pick something distinct like `pomod`, `tuipom`, etc.) and update `pyproject.toml` accordingly.
 
 ---
 

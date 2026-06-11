@@ -1,6 +1,6 @@
 # Roadmap
 
-Forward-looking phase plan for Pomodoro. Phases are sized to ship as
+Forward-looking phase plan for pomban. Phases are sized to ship as
 one or two PRs each. Done phases stay in this file (with their
 deliverable list reduced to one line) so the trajectory is visible at
 a glance.
@@ -15,7 +15,7 @@ later phases assume the earlier ones landed.
 | Phase 1 — Timer + Dashboard | [`v0.1.0`](https://github.com/prajwalmahajan101/pomban/releases/tag/v0.1.0) | shipped |
 | Phase 2 — Boards + Filters | [`v0.1.0`](https://github.com/prajwalmahajan101/pomban/releases/tag/v0.1.0) | shipped |
 | Phase 3 — Cleanup + Closures | (unreleased; lands on `main`) | merged |
-| Phase 4 — Release prep | `v0.2.0` (planned) | in progress |
+| Phase 4 — PM reframing + release | `v0.2.0` (planned) | in progress |
 | Phase 5 — Notifications + Sound polish | `v0.3.0` (planned) | planned |
 | Phase 6 — Sync hardening | `v0.4.0` (planned) | planned |
 | Phase 7 — Plugin surface | `v1.0.0` (planned) | planned |
@@ -44,38 +44,55 @@ sites routed to `log.exception`; ISSUE-001 closed as won't-fix
 (see [ADR-0002](https://github.com/prajwalmahajan101/pomban/blob/main/docs/adr/0002-single-sqlite-connection.md));
 ISSUE-005 / ISSUE-012 resolved. Folded into the next tagged release.
 
-## Phase 4 — Release prep `(in progress — targets v0.2.0)`
+## Phase 4 — Project-management reframing + release `(in progress — targets v0.2.0)`
 
-**Goal.** Bring the repo to PyPI-ready quality and ship `0.1.0`.
+**Goal.** Reframe pomban as a project-management TUI — make the
+**Project → Sprint → Task → Pomodoro** hierarchy visible and
+defaultable across every screen — and ship the result as `v0.2.0`.
 
-**Deliverables.**
+The data layer already carries this shape (projects, sprints,
+tasks with FKs, active-sprint enforcement, burndown). v0.2.0 makes
+it the *product*. Carries the original release-prep deliverables
+(PyPI packaging, screenshots, mkdocs pin, trusted publisher) inside
+M1 / M5 below.
 
-- Root docs: `CHANGELOG.md`, `CONTRIBUTING.md`, `SECURITY.md`,
-  `CLAUDE.md`, `ROADMAP.md`, `RELEASE_PLAN.md`. *(done — this commit)*
-- mkdocs-material site under `docs/site/` with install / quickstart
-  / troubleshooting / ADR index / changelog pages, deployed via
-  `.github/workflows/docs.yml`. *(done — this commit)*
-- ADRs `0001`–`0003` covering stack choice, single-SQLite-connection,
-  and the layered-screen architecture. *(done — this commit)*
-- `scripts/capture_screenshots.py` and `docs/demo.tape` scaffolded;
-  generated SVGs / GIF committed to `docs/screenshots/`.
-- `.pre-commit-config.yaml`, `requirements/{base,dev}.in`, `[tool.mypy]`
-  in `pyproject.toml`, `docs` + `mypy` extras.
-- `release.yml` workflow (tag-driven, PyPI trusted publishing,
-  CHANGELOG-extracted release notes).
-- PyPI account + trusted-publisher binding configured (out-of-band).
+**Deliverables** (five milestones — see
+[`.planning/v0.2.0-milestones.md`](.planning/v0.2.0-milestones.md)
+for the commit-by-commit breakdown).
+
+- **M1 — Foundations & release prep.** Schema v10
+  (`sessions.notes`), `db.sprint_progress` + `db.minutes_per_tag`
+  helpers, PyPI metadata (`name = "pomban"`, classifiers, keywords),
+  `mkdocs-material<2.0` pin, fixed `scripts/capture_screenshots.py`.
+- **M2 — Hierarchy made first-class.** Persistent context header on
+  every `AppScreen`, sprint-aware Dashboard + timer chip, Kanban
+  reframed as sprint/project/all-tasks board, project required on
+  task creation (picker fallback).
+- **M3 — Sprint lifecycle UX.** First-run project modal, sprint
+  runner overlay (`Shift+R`), sprint-completion modal at target,
+  inline `s` "new sprint" on the Projects screen.
+- **M4 — Supporting features.** Mid-focus blocker capture (`b`),
+  session notes UI + history column, "Today" digest (`7`), per-tag
+  analytics on Stats, structured CSV/JSON/grouped-markdown exports,
+  working-hours notification suppression.
+- **M5 — Docs reframing + tag push.** README + docs/site rewrite
+  around the PM framing, ADR-0004 (working hours) + ADR-0005 (PM
+  hierarchy), CHANGELOG `[0.2.0]`, ROADMAP Phase 4 → shipped,
+  pyproject bump + tag → `release.yml`.
 
 **Success criteria.**
 
-- `pipx install pomodoro` works from PyPI.
-- The docs site renders at `https://prajwalmahajan101.github.io/pomban/`.
-- `pre-commit run --all-files` is clean on `main`.
-- `python -m build` produces a clean sdist + wheel; `twine check`
-  passes.
+- `pipx install pomban==0.2.0` works from PyPI.
+- Clean-DB walkthrough — create project → create sprint → add
+  tasks → run a focus → see header progress → close sprint with
+  retro — requires no docs lookup.
+- `mkdocs build --strict` clean; `release.yml` goes green on tag push.
+- `pre-commit run --all-files` and `pytest -q` clean on every
+  milestone-tip commit.
 
 ## Phase 5 — Notifications + Sound polish `(planned — targets v0.3.0)`
 
-**Goal.** Make Pomodoro feel as native as a desktop timer.
+**Goal.** Make pomban feel as native as a desktop timer.
 
 **Deliverables.**
 
@@ -84,14 +101,14 @@ ISSUE-005 / ISSUE-012 resolved. Folded into the next tagged release.
   `win10toast` (optional dep).
 - Sound theme: pluggable `[notifications.sound_file]` paths per phase
   end; default freedesktop sound, optional curated short clips
-  shipped under `src/pomodoro/sounds/`.
+  shipped under `src/pomban/sounds/`.
 - Bell + flash works in all supported terminals (today: kitty,
   alacritty, foot, ghostty verified; iTerm2 + WezTerm still to test).
 - An ADR covering the cross-platform notification matrix.
 
 **Success criteria.**
 
-- `pomodoro` launches a focus session on macOS / Linux / Windows
+- `pomban` launches a focus session on macOS / Linux / Windows
   Terminal and fires both desktop + sound + in-TUI notifications.
 
 ## Phase 6 — Sync hardening `(planned — targets v0.4.0)`
@@ -111,7 +128,7 @@ story.
 
 **Success criteria.**
 
-- The author can run Pomodoro on a laptop and a desktop, switch
+- The author can run pomban on a laptop and a desktop, switch
   between them, and never lose a session.
 
 ## Phase 7 — Plugin surface `(planned — targets v1.0.0)`
@@ -129,7 +146,7 @@ story.
 **Success criteria.**
 
 - At least one externally-authored plugin lands on PyPI and works
-  with no Pomodoro-side changes.
+  with no pomban-side changes.
 
 ---
 
@@ -140,7 +157,7 @@ These have been considered and deferred:
 - **Music / cliamp integration.** Removed in Phase 3; the
   [`code_review_issues.md`](https://github.com/prajwalmahajan101/pomban/blob/main/.code_review/code_review_issues.md) entry
   documents why. Not coming back.
-- **Multi-user / multi-account.** Pomodoro is per-user, local-first.
+- **Multi-user / multi-account.** pomban is per-user, local-first.
   Sync is the only multi-device story.
 - **A web dashboard.** Out of scope by design; the project's identity
   is "terminal-first".

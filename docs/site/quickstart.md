@@ -3,7 +3,7 @@
 After [installing](install.md):
 
 ```bash
-pomodoro
+pomban
 ```
 
 You'll land on the Dashboard with an empty task list. Press `?` at
@@ -12,7 +12,7 @@ any time for a context-aware help overlay.
 ## First five minutes
 
 1. **Add a task.** Press `n`, type `Write release notes ~2 #docs`,
-   Enter. The `~2` is the pomodoro estimate; `#docs` is a tag.
+   Enter. The `~2` is the pomban estimate; `#docs` is a tag.
 2. **Start a focus session.** Select the task with `j`/`k`, press
    Enter (or `s` to start without picking one).
 3. **Pause if you need to.** `s` again toggles pause / resume.
@@ -74,8 +74,8 @@ Quit (`q`) commits the current state:
 - Open focus session and remaining seconds → next launch shows a
   **resume? y/n** prompt.
 - Completed sessions, tasks, projects, sprints, kanban positions →
-  `~/.local/share/pomodoro/library.db`.
-- Theme + auto-advance flag → `~/.config/pomodoro/config.toml`.
+  `~/.local/share/pomban/library.db`.
+- Theme + auto-advance flag → `~/.config/pomban/config.toml`.
 
 If the [`git_sync` plugin](configuration.md#sync) is on, the
 library DB is also committed (never pushed) on exit.

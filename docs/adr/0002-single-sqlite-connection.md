@@ -4,7 +4,7 @@ Status: Accepted (2026-06-11)
 
 ## Context
 
-Pomodoro's 0.25 s tick path calls into `core/timer_engine.tick()`
+pomban's 0.25 s tick path calls into `core/timer_engine.tick()`
 and, when a phase ends, into `_on_phase_completed()` which writes to
 the SQLite library:
 
@@ -70,7 +70,7 @@ sharing).
 - We accept that "the user's terminal froze for 50ms once" is a
   bug we can investigate, not a category of bug we structurally
   prevent.
-- A second tool that opens the DB while Pomodoro is running will
+- A second tool that opens the DB while pomban is running will
   see locks (documented in
   [troubleshooting](../site/troubleshooting.md#sqlite-says-database-is-locked)).
 

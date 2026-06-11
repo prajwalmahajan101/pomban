@@ -2,7 +2,7 @@
 
 ## Supported versions
 
-Pomodoro follows semantic versioning. Security fixes land on the
+pomban follows semantic versioning. Security fixes land on the
 latest minor; only the latest minor is supported.
 
 | Version | Supported          |
@@ -22,7 +22,7 @@ is ready, we'll coordinate disclosure with you.
 
 ## What's in scope
 
-Pomodoro is a local-only TUI. It does not run a server, open a
+pomban is a local-only TUI. It does not run a server, open a
 network socket, or accept untrusted RPC. The realistic attack
 surface is:
 
@@ -40,7 +40,7 @@ surface is:
   markup. Hostile sequences like `[/]` must not crash the board /
   timer / list renderers (see `tests/test_markup_safety.py`).
 - **SQLite library tampering** — opening a maliciously crafted
-  `~/.local/share/pomodoro/library.db`. In scope at the parser
+  `~/.local/share/pomban/library.db`. In scope at the parser
   level; out of scope as a privilege boundary (the attacker already
   has filesystem access to your home directory).
 

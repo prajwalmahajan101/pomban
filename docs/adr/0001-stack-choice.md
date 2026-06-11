@@ -4,7 +4,7 @@ Status: Accepted (2026-06-11)
 
 ## Context
 
-Pomodoro is a keyboard-driven Pomodoro TUI with a kanban / projects /
+pomban is a keyboard-driven Pomodoro TUI with a kanban / projects /
 sprints surface and local-first persistence. It needs:
 
 - A TUI framework that handles layout, scrolling, theming, async

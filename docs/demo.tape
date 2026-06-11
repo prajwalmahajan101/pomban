@@ -1,10 +1,10 @@
-# pomodoro — animated README hero.
+# pomban — animated README hero.
 #
 # Render with: vhs docs/demo.tape
 # Output:      docs/screenshots/demo.gif
 #
 # Requires vhs (https://github.com/charmbracelet/vhs), ffmpeg, and
-# ttyd on $PATH. Assumes `pomodoro` is on PATH (pipx install or
+# ttyd on $PATH. Assumes `pomban` is on PATH (pipx install or
 # uv tool install).
 
 Output docs/screenshots/demo.gif
@@ -15,7 +15,7 @@ Set Height 900
 Set Padding 20
 Set Theme "Catppuccin Mocha"
 
-Type "pomodoro"
+Type "pomban"
 Enter
 Sleep 2s
 

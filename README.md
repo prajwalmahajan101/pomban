@@ -1,4 +1,4 @@
-# pomodoro
+# pomban
 
 [![Python](https://img.shields.io/badge/python-%E2%89%A53.11-blue.svg)](https://www.python.org/)
 [![License](https://img.shields.io/badge/license-MIT-green.svg)](./LICENSE)
@@ -8,13 +8,13 @@
 > local-first SQLite persistence. Built with
 > [Textual](https://textual.textualize.io/).
 
-![pomodoro dashboard](docs/screenshots/dashboard.svg)
+![pomban dashboard](docs/screenshots/dashboard.svg)
 
 ```bash
-pipx install pomodoro && pomodoro
+pipx install pomban && pomban
 ```
 
-## Why pomodoro?
+## Why pomban?
 
 - **vs CLI timers** — full task surface (kanban + projects + sprints +
   history + stats), not just a countdown.
@@ -45,11 +45,11 @@ pipx install pomodoro && pomodoro
   Python entry-point plugins; the first-party `git_sync` plugin
   commits your library on exit so it can sync across devices.
 - **Local-first** — single SQLite file at
-  `~/.local/share/pomodoro/library.db`. Nothing leaves your machine.
+  `~/.local/share/pomban/pomban.db`. Nothing leaves your machine.
 
 ## Install
 
-The PyPI package will be named **`pomodoro`** (planned for the 0.1.0
+The PyPI package will be named **`pomban`** (planned for the 0.1.0
 release — see [ROADMAP.md](./ROADMAP.md)). Until then, install from
 source.
 
@@ -67,7 +67,7 @@ pipx install git+https://github.com/prajwalmahajan101/pomban
 uv tool install git+https://github.com/prajwalmahajan101/pomban
 ```
 
-Either gives you a global `pomodoro` command with its dependencies
+Either gives you a global `pomban` command with its dependencies
 sandboxed in their own venv.
 
 ### pip (inside a venv)
@@ -98,7 +98,7 @@ pip install -e ".[dev]"
 ## Quick start
 
 ```bash
-pomodoro                    # launch the TUI
+pomban                    # launch the TUI
 ```
 
 Press `?` at any time for a context-aware help overlay. The most
@@ -120,14 +120,14 @@ Full reference: [docs/site/keybindings.md](docs/site/keybindings.md).
 ### CLI
 
 ```bash
-pomodoro                    # launch the TUI
-pomodoro export --since 7d  # markdown review to stdout
-pomodoro sprint export …    # per-sprint reports (see `--help`)
+pomban                    # launch the TUI
+pomban export --since 7d  # markdown review to stdout
+pomban sprint export …    # per-sprint reports (see `--help`)
 ```
 
 ## Configuration
 
-Pomodoro reads `~/.config/pomodoro/config.toml` (XDG-compliant). The
+pomban reads `~/.config/pomban/config.toml` (XDG-compliant). The
 file is optional — sane defaults ship. Top-level sections:
 
 | Section | What it controls |
@@ -147,9 +147,9 @@ Full reference: [docs/site/configuration.md](docs/site/configuration.md).
 
 | Purpose | Path |
 |---|---|
-| Config | `$XDG_CONFIG_HOME/pomodoro/config.toml`, default `~/.config/pomodoro/config.toml` |
-| Library DB | `$XDG_DATA_HOME/pomodoro/library.db`, default `~/.local/share/pomodoro/library.db` |
-| Log | `$XDG_STATE_HOME/pomodoro/pomodoro.log`, default `~/.local/state/pomodoro/pomodoro.log` |
+| Config | `$XDG_CONFIG_HOME/pomban/config.toml`, default `~/.config/pomban/config.toml` |
+| Library DB | `$XDG_DATA_HOME/pomban/pomban.db`, default `~/.local/share/pomban/pomban.db` |
+| Log | `$XDG_STATE_HOME/pomban/pomban.log`, default `~/.local/state/pomban/pomban.log` |
 
 ## Troubleshooting
 
@@ -160,7 +160,7 @@ itself always fires; the desktop notification is best-effort.
 
 **`git_sync` complained "not a git repo".**
 Run `git init && git remote add origin <your-url>` inside
-`~/.local/share/pomodoro/`. Pomodoro commits on exit but never
+`~/.local/share/pomban/`. pomban commits on exit but never
 pushes — set up a `post-commit` hook or cron if you want auto-push.
 
 **A focus session crashed mid-pomodoro; will I lose it?**
@@ -168,9 +168,9 @@ No. The session and remaining seconds are persisted at every phase
 transition. On next launch you'll get a resume prompt.
 
 **SQLite says "database is locked".**
-Pomodoro uses a single SQLite connection by design (see
+pomban uses a single SQLite connection by design (see
 [ADR-0002](docs/adr/0002-single-sqlite-connection.md)). If you opened
-the DB in another tool while Pomodoro was running, close that tool.
+the DB in another tool while pomban was running, close that tool.
 
 ## Development
 
@@ -191,7 +191,7 @@ See [CONTRIBUTING.md](./CONTRIBUTING.md) for the full convention list,
 
 ## Project background
 
-Pomodoro is a solo, phase-driven project. The phase plan and current
+pomban is a solo, phase-driven project. The phase plan and current
 status are in [ROADMAP.md](./ROADMAP.md); architectural decisions are
 recorded under [docs/adr/](docs/adr/); the cumulative change history
 is in [CHANGELOG.md](./CHANGELOG.md). Active and resolved code-review

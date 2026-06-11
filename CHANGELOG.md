@@ -1,11 +1,20 @@
 # Changelog
 
-All notable changes to Pomodoro are documented in this file.
+All notable changes to pomban are documented in this file.
 
 Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/);
 the project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
+
+### Changed
+- **Renamed package from `pomodoro` to `pomban`.** PyPI distribution,
+  CLI binary, Python package, and XDG directories all migrate to the
+  `pomban` name. On first launch, a one-shot migration shim renames
+  the legacy `~/.local/share/pomodoro/`, `~/.local/state/pomodoro/`,
+  and `~/.config/pomodoro/` directories (and the `pomodoro.db` /
+  `pomodoro.log` files inside them) to their `pomban` equivalents.
+  No-op when the new paths already exist.
 
 ### Added
 - `ROADMAP.md` and `RELEASE_PLAN.md` at the repo root — forward-looking
@@ -41,7 +50,7 @@ the project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html
 
 ## [0.1.0] — 2026-06-11
 
-Initial pre-release of the Pomodoro dashboard TUI. Captures every
+Initial pre-release of the pomban dashboard TUI. Captures every
 feature shipped on `main` to date.
 
 ### Added
@@ -84,7 +93,7 @@ feature shipped on `main` to date.
   `AppScreen.action_focus_pane` give each pane a highlighted-letter
   selector (Dashboard: `i` Timer, `a` Tasks).
 - **Structured logging** via `core/log.py` — file-only writes to
-  `~/.local/state/pomodoro/pomodoro.log`; never touches stdout while
+  `~/.local/state/pomban/pomban.log`; never touches stdout while
   the TUI owns the terminal.
 
 ### Removed

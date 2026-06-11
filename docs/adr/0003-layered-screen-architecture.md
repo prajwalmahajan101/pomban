@@ -4,7 +4,7 @@ Status: Accepted (2026-06-11)
 
 ## Context
 
-Pomodoro has eight or nine top-level screens (Dashboard, Kanban,
+pomban has eight or nine top-level screens (Dashboard, Kanban,
 Stats, History, Projects, Sprints) plus modals (Resume, PresetPicker,
 SessionEndScreen, CardDetailScreen, EditTaskModal). Each is reached
 via a `1`–`6` jump key. The 0.25 s tick callback in `app.py` needs to

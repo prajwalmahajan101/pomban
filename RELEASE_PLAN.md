@@ -1,16 +1,16 @@
 # Release Plan
 
-The mechanics of cutting a Pomodoro release. Tag-driven: pushing a
+The mechanics of cutting a pomban release. Tag-driven: pushing a
 tag of the form `vX.Y.Z` to GitHub triggers the entire pipeline.
 
 ## Versioning
 
-Pomodoro follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html):
+pomban follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html):
 
 - **MAJOR** — incompatible CLI / config / SQLite-schema changes
   (e.g. removing a binding, renaming a config section, dropping a
   migration). Today this means: anything that breaks an existing
-  `~/.config/pomodoro/config.toml` or `~/.local/share/pomodoro/library.db`.
+  `~/.config/pomban/config.toml` or `~/.local/share/pomban/library.db`.
 - **MINOR** — new screens, new bindings, new config keys, new
   plugins, new ADR-worthy behaviour. Backwards-compatible reads of
   old config + DB.
@@ -64,8 +64,8 @@ Before tagging:
    pip install build twine
    python -m build
    twine check dist/*
-   pipx install ./dist/pomodoro-X.Y.Z-py3-none-any.whl
-   pomodoro                  # launches; press q
+   pipx install ./dist/pomban-X.Y.Z-py3-none-any.whl
+   pomban                  # launches; press q
    ```
 
 ## Cutting the release
@@ -90,15 +90,15 @@ git push origin v0.2.0-rc1
 
 `release.yml` recognises the `-` suffix and marks the GitHub release
 as **pre-release**; PyPI tags the upload with `0.2.0rc1` (PEP 440
-normalisation). Users opt in with `pipx install --pre pomodoro` or
-`pip install pomodoro==0.2.0rc1`.
+normalisation). Users opt in with `pipx install --pre pomban` or
+`pip install pomban==0.2.0rc1`.
 
 ## Rollback
 
 Releases on PyPI are immutable — you cannot delete a published
 version and re-upload the same number. To unship:
 
-1. **Yank** on PyPI via `twine yank dist/pomodoro-X.Y.Z*` (or the
+1. **Yank** on PyPI via `twine yank dist/pomban-X.Y.Z*` (or the
    PyPI web UI). Users with the version installed keep it; new
    installs skip it.
 2. **Delete the GitHub release** (keeps the tag) and mark it

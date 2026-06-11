@@ -1,4 +1,4 @@
-# Contributing to Pomodoro
+# Contributing to pomban
 
 Thanks for considering it. The bar is high but the process is
 mechanical — match it and your PR should sail through.
@@ -46,7 +46,7 @@ of this on commit; CI is the backstop.
 
 ## Architectural conventions
 
-Pomodoro is a layered Textual TUI. The layers are:
+pomban is a layered Textual TUI. The layers are:
 
 | Layer | Responsibility |
 |---|---|
@@ -63,7 +63,7 @@ Pomodoro is a layered Textual TUI. The layers are:
   blanket `except Exception: pass` — silent failures mask real bugs.
   Cosmetic UI side effects (`notify`, `bell`, `animate`) are the
   exception and may stay silent.
-- Module-level imports of `pomodoro.core.log as log`; call
+- Module-level imports of `pomban.core.log as log`; call
   `log.exception("<context>")` from boundary catches.
 - `from __future__ import annotations` at the top of every module.
 - Inline comments only when the *why* is non-obvious. Don't narrate

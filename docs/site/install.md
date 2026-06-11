@@ -1,6 +1,6 @@
 # Install
 
-Pomodoro is a CLI tool. Install it the same way you'd install any
+pomban is a CLI tool. Install it the same way you'd install any
 modern Python CLI: into an isolated environment, not into your
 system Python.
 
@@ -14,9 +14,9 @@ pipx install git+https://github.com/prajwalmahajan101/pomban
 uv tool install git+https://github.com/prajwalmahajan101/pomban
 ```
 
-Either gives you a global `pomodoro` command with its dependencies
+Either gives you a global `pomban` command with its dependencies
 sandboxed in their own venv. PyPI distribution
-(`pipx install pomodoro`) is planned for the 0.1.0 release — see the
+(`pipx install pomban`) is planned for the 0.1.0 release — see the
 [roadmap](roadmap.md).
 
 ## PEP 668 — why not bare `pip install`?
@@ -59,7 +59,7 @@ See [development](development.md) for the full contributor setup
 ## Verify
 
 ```bash
-pomodoro                  # launches the TUI; press q to quit
+pomban                  # launches the TUI; press q to quit
 ```
 
 If you get `command not found`, your shell hasn't picked up the

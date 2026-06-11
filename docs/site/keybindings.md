@@ -170,7 +170,7 @@ limit turns red with `⚠ n/limit` and moving into it warns (but isn't blocked).
 | `c` | Mark sprint as **completed** |
 | `x` | Mark sprint as **cancelled** |
 | `d` | Delete the sprint (tasks released back to project backlog) |
-| `e` | Edit pomodoro target |
+| `e` | Edit pomban target |
 | `g` | Edit goal |
 | `Enter` | Apply this sprint as a filter and switch to Kanban |
 

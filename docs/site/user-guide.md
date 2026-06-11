@@ -5,7 +5,7 @@ Everything a user needs, in the order you'll meet it.
 ## Contents
 
 1. [Quickstart](#quickstart)
-2. [The Pomodoro cycle](#the-pomodoro-cycle)
+2. [The Pomodoro cycle](#the-pomban-cycle)
 3. [Tasks](#tasks)
 4. [Projects (and the Inbox)](#projects-and-the-inbox)
 5. [Sprints](#sprints)
@@ -51,12 +51,12 @@ Projects are 1:N containers for tasks: a task belongs to exactly one project, or
 
 ## Sprints
 
-Sprints are time-boxed containers for tasks **within a project**. Each sprint has a name, start/end date, optional goal and pomodoro target.
+Sprints are time-boxed containers for tasks **within a project**. Each sprint has a name, start/end date, optional goal and pomban target.
 
 - **Manage sprints**: press `6` for the Sprints screen — `n` add, `a` activate, `c` complete, `x` cancel, `d` delete, `e` edit target, `g` edit goal.
 - **Activate** (`a`): only one sprint per project can be active at a time. Picking a sprint as the filter (`Shift+F` or via the screen) restricts Kanban to its tasks.
 - **Burndown**: when a sprint filter is active, the Stats screen renders a burndown sparkline (remaining 🍅 over time vs ideal linear pace).
-- **Sprint export**: `pomodoro sprint export <id>` prints a markdown report (goal, dates, shipped vs not, retrospective if set).
+- **Sprint export**: `pomban sprint export <id>` prints a markdown report (goal, dates, shipped vs not, retrospective if set).
 
 ## Lunch breaks
 
@@ -74,8 +74,8 @@ A lunch (or coffee walk, school pickup, …) is a real recurring interruption th
 The quickest path is the `Makefile`:
 
 ```bash
-make install       # pip install -e .   (adds the `pomodoro` command)
-make run           # or: python -m pomodoro
+make install       # pip install -e .   (adds the `pomban` command)
+make run           # or: python -m pomban
 make install-dev   # editable install + pytest, for hacking on it
 make test          # run the suite
 make help          # list all targets
@@ -86,7 +86,7 @@ Requires Python ≥ 3.11. The only runtime dependency is Textual.
 ## Quickstart
 
 ```bash
-pomodoro           # or `make run`
+pomban           # or `make run`
 ```
 
 1. Type a task title in the input box at the bottom right; press **Enter**.
@@ -379,7 +379,7 @@ Each command runs in `sh -c …` with these env vars:
 | `POMODORO_EVENT` | `start` / `end` |
 | `POMODORO_TASK_TITLE` | The active task's title (empty if no task) |
 
-Hooks are **fire-and-forget** — they never block the UI. stdout/stderr are appended to `~/.local/state/pomodoro/hooks.log`. Failures (missing binary, non-zero exit) are silent and logged.
+Hooks are **fire-and-forget** — they never block the UI. stdout/stderr are appended to `~/.local/state/pomban/hooks.log`. Failures (missing binary, non-zero exit) are silent and logged.
 
 For more powerful in-process integration, use [plugins](development.md#plugins) instead.
 
@@ -412,9 +412,9 @@ Caveat: only the *focus* phase is currently persisted. If you quit during a brea
 ## Markdown export
 
 ```bash
-pomodoro export                    # last 7 days
-pomodoro export --since 30d        # last 30 days
-pomodoro export --since 14d > review-this-fortnight.md
+pomban export                    # last 7 days
+pomban export --since 30d        # last 30 days
+pomban export --since 14d > review-this-fortnight.md
 ```
 
 Produces a Markdown document:
@@ -445,15 +445,15 @@ Produces a Markdown document:
 
 | Path | Contents |
 |---|---|
-| `~/.local/share/pomodoro/pomodoro.db` | All tasks, sessions, interruptions, KV |
-| `~/.config/pomodoro/config.toml` | User configuration |
-| `~/.local/state/pomodoro/hooks.log` | stdout/stderr from shell hooks |
-| `~/.local/state/pomodoro/plugins.log` | Errors from in-process plugins |
+| `~/.local/share/pomban/pomban.db` | All tasks, sessions, interruptions, KV |
+| `~/.config/pomban/config.toml` | User configuration |
+| `~/.local/state/pomban/hooks.log` | stdout/stderr from shell hooks |
+| `~/.local/state/pomban/plugins.log` | Errors from in-process plugins |
 
 Override locations by setting `$XDG_DATA_HOME`, `$XDG_CONFIG_HOME`, `$XDG_STATE_HOME` — the app respects the XDG Base Directory spec.
 
 To wipe and start fresh:
 
 ```bash
-rm -rf ~/.local/share/pomodoro ~/.config/pomodoro ~/.local/state/pomodoro
+rm -rf ~/.local/share/pomban ~/.config/pomban ~/.local/state/pomban
 ```

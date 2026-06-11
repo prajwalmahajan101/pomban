@@ -1,11 +1,11 @@
-# pomodoro
+# pomban
 
 A keyboard-driven Pomodoro TUI with kanban, projects, sprints, and
 local-first SQLite persistence. Built with
 [Textual](https://textual.textualize.io/).
 
 ```bash
-pipx install git+https://github.com/prajwalmahajan101/pomban && pomodoro
+pipx install git+https://github.com/prajwalmahajan101/pomban && pomban
 ```
 
 ![dashboard](https://raw.githubusercontent.com/prajwalmahajan101/pomban/main/docs/screenshots/dashboard.svg)
@@ -23,9 +23,9 @@ pipx install git+https://github.com/prajwalmahajan101/pomban && pomodoro
 - Hooks (shell commands on phase start/end) and in-process Python
   plugins.
 - Local-first — single SQLite file at
-  `~/.local/share/pomodoro/library.db`. Nothing leaves your machine.
+  `~/.local/share/pomban/library.db`. Nothing leaves your machine.
 
-## Why pomodoro?
+## Why pomban?
 
 - **vs CLI timers** — full task surface (kanban + projects + sprints
   + history + stats), not just a countdown.

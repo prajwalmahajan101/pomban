@@ -3,7 +3,7 @@
 All user configuration lives in a single TOML file:
 
 ```
-~/.config/pomodoro/config.toml
+~/.config/pomban/config.toml
 ```
 
 The file is **optional**. If it doesn't exist, sensible defaults apply. If it's malformed (invalid TOML), defaults apply silently — the app never crashes on a bad config.
@@ -41,7 +41,7 @@ mouse = false                      # mouse support (rarely useful in a TUI)
 [hooks]
 # Shell commands run via `sh -c`. Each is optional.
 # All run fire-and-forget. stdout/stderr land in
-# ~/.local/state/pomodoro/hooks.log
+# ~/.local/state/pomban/hooks.log
 #
 # Env vars passed to every hook:
 #   POMODORO_PHASE        — focus | short_break | long_break
@@ -55,7 +55,7 @@ on_break_end   = ""
 # ───────────────────────────────────────────
 [sync]
 # If true, on app exit: `git add -A && git commit` inside the data dir
-# (~/.local/share/pomodoro/). The directory must already be a git repo;
+# (~/.local/share/pomban/). The directory must already be a git repo;
 # pushing is up to you (cron job, post-commit hook, etc.).
 enabled = false
 
@@ -177,7 +177,7 @@ If you need richer logic than a shell can express, use a [plugin](development.md
 Setup:
 
 ```bash
-cd ~/.local/share/pomodoro
+cd ~/.local/share/pomban
 git init
 git remote add origin <your-git-url>
 ```

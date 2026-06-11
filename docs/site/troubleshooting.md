@@ -5,7 +5,7 @@ open an [issue](https://github.com/prajwalmahajan101/pomban/issues).
 
 ## The bell rings but no desktop notification appears
 
-Pomodoro fires three things on phase change: a desktop notification,
+pomban fires three things on phase change: a desktop notification,
 a sound, and the in-TUI bell + screen flash. The latter always
 works. The other two need OS-level tools:
 
@@ -31,17 +31,17 @@ sync across devices via your own git remote. It needs a git repo at
 the data dir:
 
 ```bash
-cd ~/.local/share/pomodoro
+cd ~/.local/share/pomban
 git init
 git remote add origin <your-private-git-url>
 git config user.email "you@example.com"
 git config user.name "Your Name"
 ```
 
-Pomodoro **commits**, never **pushes** — set up a `post-commit` hook
+pomban **commits**, never **pushes** — set up a `post-commit` hook
 or a cron job if you want auto-push.
 
-## A focus session crashed mid-pomodoro; will I lose it?
+## A focus session crashed mid-pomban; will I lose it?
 
 No. The session row and `pending_remaining_seconds` are persisted at
 every phase transition (and on `q`). On next launch you'll get a
@@ -50,11 +50,11 @@ discards the session as `completed=0`.
 
 ## SQLite says "database is locked"
 
-Pomodoro uses a single SQLite connection by design (see
+pomban uses a single SQLite connection by design (see
 [ADR-0002](https://github.com/prajwalmahajan101/pomban/blob/main/docs/adr/0002-single-sqlite-connection.md)).
 If you opened the DB in another tool (DB Browser, sqlite3 shell)
-while Pomodoro is running, close that tool. Don't run multiple
-copies of `pomodoro` against the same data dir.
+while pomban is running, close that tool. Don't run multiple
+copies of `pomban` against the same data dir.
 
 ## The kanban board is unfamiliar — where's the cursor?
 
@@ -79,16 +79,16 @@ infocmp $TERM | head                       # generic
 
 ## My theme reverted on next launch
 
-Theme cycling (`t`) writes to `~/.config/pomodoro/config.toml`. If
+Theme cycling (`t`) writes to `~/.config/pomban/config.toml`. If
 the write failed (read-only home, missing parent dir), it goes into
-`~/.local/state/pomodoro/pomodoro.log`. Check there.
+`~/.local/state/pomban/pomban.log`. Check there.
 
 ## I want to see what the app is doing
 
 Tail the structured log:
 
 ```bash
-tail -F ~/.local/state/pomodoro/pomodoro.log
+tail -F ~/.local/state/pomban/pomban.log
 ```
 
 It's file-only (never stdout / stderr) so it can't corrupt the
