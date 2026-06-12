@@ -614,7 +614,9 @@ class PomodoroApp(App):
                     snapshot.append((b.key, b.description))
         except Exception:
             log.exception("failed to snapshot bindings for help")
-        self.push_screen(HelpScreen(snapshot))
+        intro = getattr(self.screen, "HELP_INTRO", None)
+        title = f"pomban — {self.screen.__class__.__name__.removesuffix('Screen')}"
+        self.push_screen(HelpScreen(snapshot, intro=intro, title=title))
 
     def _maybe_prompt_first_run(self) -> None:
         """Empty-DB launch: push FirstRunModal to seed an initial project."""

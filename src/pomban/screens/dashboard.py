@@ -33,6 +33,23 @@ class TaskItem(ListItem):
 
 
 class DashboardScreen(AppScreen):
+    HELP_INTRO = (
+        "[b]How the dashboard works[/]\n"
+        "Your home base: a focus [b]timer[/] (top), the [b]task list[/] for the\n"
+        "active project/sprint filter (bottom), and a stats strip in the middle.\n"
+        "\n"
+        "[b]Run a Pomodoro[/]: select a task with [b]j[/]/[b]k[/] then [b]Enter[/]\n"
+        "(or [b]s[/] to start without picking one). [b]s[/]/[b]Space[/] also\n"
+        "pauses & resumes mid-session. [b]r[/] resets, [b]Shift+S[/] skips phase.\n"
+        "\n"
+        "[b]Add a task[/]: [b]n[/] focuses the new-task input. Use inline tokens —\n"
+        "[b]@project[/], [b]!sprint[/], [b]#tag[/], [b]~5[/] estimate — to wire it\n"
+        "up in one line. No [b]@project[/]? The picker opens before saving.\n"
+        "\n"
+        "[b]Mid-focus actions[/]: [b]b[/] logs a blocker (timer keeps running),\n"
+        "[b]Shift+L[/] starts a lunch break, [b]Shift+T[/] toggles auto-advance."
+    )
+
     CSS = """
     DashboardScreen { layout: vertical; }
     #stats { dock: top; }

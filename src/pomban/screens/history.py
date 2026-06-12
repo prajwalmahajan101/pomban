@@ -13,6 +13,20 @@ def _dur(secs: int) -> str:
 
 
 class HistoryScreen(AppScreen):
+    HELP_INTRO = (
+        "[b]How history works[/]\n"
+        "Every focus session is one row: phase, planned vs actual minutes,\n"
+        "the task that was attached, interruption count, and the\n"
+        "free-text note you left at session end.\n"
+        "\n"
+        "Pages chronologically (newest first). Filtered by the active\n"
+        "project / sprint from the context header.\n"
+        "\n"
+        "Useful when reviewing the day or week — pair with [b]7[/]\n"
+        "([b]Today[/] digest) for a high-level summary and [b]3[/]\n"
+        "([b]Stats[/]) for trend bars."
+    )
+
     BINDINGS = [
         Binding("1", "app.switch('dashboard')", "Dashboard"),
         Binding("2", "app.switch('kanban')", "Kanban"),

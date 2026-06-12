@@ -57,6 +57,32 @@ def _matches_query(task: Task, query: str) -> bool:
 
 
 class KanbanScreen(AppScreen):
+    HELP_INTRO = (
+        "[b]How the board works[/]\n"
+        "Three columns — [b]To Do[/] · [b]Doing[/] · [b]Done[/] — under the\n"
+        "active project / sprint filter from the context header.\n"
+        "\n"
+        "[b]Cursor[/]: [b]j[/]/[b]k[/] move within a column, [b]h[/]/[b]l[/] (or\n"
+        "[b]Tab[/]) jump between columns. The active column gets an accent\n"
+        "border; the focused card highlights with a brighter background.\n"
+        "\n"
+        "[b]Move cards[/]: [b]Shift+H[/]/[b]Shift+L[/] push the focused card\n"
+        "left/right across columns. [b]Shift+J[/]/[b]Shift+K[/] reorder within\n"
+        "the column.\n"
+        "\n"
+        "[b]Focus a card[/]: [b]Enter[/] or [b]s[/] starts a Pomodoro on the\n"
+        "selected card. [b]c[/] completes (To Do/Doing → Done). [b]o[/]\n"
+        "reopens a Done card.\n"
+        "\n"
+        "[b]Visual mode[/]: [b]v[/] toggles multi-select. [b]Space[/] picks\n"
+        "the focused card. While selected, [b]Shift+H[/]/[b]Shift+L[/] bulk-\n"
+        "move, [b]c[/]/[b]d[/] bulk-complete/delete, [b]g[/] adds a tag.\n"
+        "\n"
+        "[b]Add / search[/]: [b]n[/] focuses the bottom input to add to the\n"
+        "current column. [b]/[/] filters the board by text or [b]#tag[/].\n"
+        "[b]Esc[/] clears the filter."
+    )
+
     CSS = """
     KanbanScreen { layout: vertical; }
     #board { height: 1fr; }
