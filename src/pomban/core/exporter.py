@@ -135,7 +135,7 @@ def export_csv(db: DB, days: int = 7, group_by: str | None = None) -> str:
                 r.get("actual_seconds", 0) or 0,
                 int(r.get("completed", 0) or 0),
                 r.get("interruption_count", 0) or 0,
-                (r["notes"] if "notes" in r.keys() else "") or "",
+                (r.get("notes", "")) or "",
                 r.get("task_titles", "") or "",
             ]
         )
@@ -160,7 +160,7 @@ def export_json(db: DB, days: int = 7, group_by: str | None = None) -> str:
             "actual_seconds": r.get("actual_seconds", 0),
             "completed": bool(r.get("completed", 0)),
             "interruption_count": r.get("interruption_count", 0),
-            "notes": (r["notes"] if "notes" in r.keys() else "") or "",
+            "notes": (r.get("notes", "")) or "",
             "task_titles": r.get("task_titles") or "",
         }
         for r in db.session_history(10_000)

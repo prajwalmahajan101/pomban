@@ -1,4 +1,5 @@
 """Minimal example plugin: prints phase events to stderr."""
+
 import sys
 
 

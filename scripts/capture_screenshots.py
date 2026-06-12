@@ -103,9 +103,13 @@ async def main() -> None:
         # Dashboard
         app = PomodoroApp(
             db=DB(path=db_path),
-            settings=Settings(focus_seconds=1500, short_break_seconds=300,
-                              long_break_seconds=900, cycles_before_long_break=4,
-                              warning_seconds=30),
+            settings=Settings(
+                focus_seconds=1500,
+                short_break_seconds=300,
+                long_break_seconds=900,
+                cycles_before_long_break=4,
+                warning_seconds=30,
+            ),
         )
         await _capture(app, DASHBOARD_SIZE, OUT_DIR / "dashboard.svg")
 

@@ -48,7 +48,7 @@ def _log_completed_focus(db: DB, task_id: int) -> int:
 
 
 def test_create_sprint_for_project_activates_new_sprint(env):
-    engine, db, filters = env
+    engine, db, _filters = env
     project = db.add_project("Demo")
     sp = engine.create_sprint_for_project(project.id)
     assert sp.status == "active"
@@ -58,7 +58,7 @@ def test_create_sprint_for_project_activates_new_sprint(env):
 
 
 def test_create_sprint_deactivates_sibling(env):
-    engine, db, filters = env
+    engine, db, _filters = env
     project = db.add_project("Demo")
     first = engine.create_sprint_for_project(project.id)
     second = engine.create_sprint_for_project(project.id)
@@ -67,7 +67,7 @@ def test_create_sprint_deactivates_sibling(env):
 
 
 def test_close_sprint_marks_completed_and_stores_retro(env):
-    engine, db, filters = env
+    engine, db, _filters = env
     _, sprint_id, _ = _make_sprint(db, target=2)
     engine.close_sprint(sprint_id, "went well")
     sp = db.get_sprint(sprint_id)
@@ -79,7 +79,7 @@ def test_close_sprint_marks_completed_and_stores_retro(env):
 
 
 def test_target_hit_when_no_active_sprint_returns_none(env):
-    engine, db, filters = env
+    engine, db, _filters = env
     project = db.add_project("P")
     task = db.add_task("T", project_id=project.id)
     sid = _log_completed_focus(db, task.id)

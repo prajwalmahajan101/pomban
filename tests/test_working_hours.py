@@ -5,8 +5,6 @@ from __future__ import annotations
 from datetime import datetime, time
 from unittest.mock import patch
 
-import pytest
-
 from pomban.core.config import BreaksSection, Config, to_notify_config
 from pomban.notifications import NotifyConfig, fire, within_working_hours
 
