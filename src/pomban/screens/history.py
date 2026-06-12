@@ -43,7 +43,15 @@ class HistoryScreen(AppScreen):
         except TypeError:
             table.clear()
         table.add_columns(
-            "When", "Kind", "Project(s)", "Planned", "Actual", "Done", "Interr.", "Task(s)"
+            "When",
+            "Kind",
+            "Project(s)",
+            "Planned",
+            "Actual",
+            "Done",
+            "Interr.",
+            "Notes",
+            "Task(s)",
         )
         active_pid = self.app.project_filter.scoped_project_id
         for row in self.app.db.session_history(100, project_id=active_pid):
@@ -55,5 +63,6 @@ class HistoryScreen(AppScreen):
                 _dur(row["actual_seconds"]),
                 "✓" if row["completed"] else "·",
                 str(row["interruption_count"] or 0),
+                (row["notes"] if "notes" in row.keys() else "") or "",
                 row.get("task_titles") or "",
             )

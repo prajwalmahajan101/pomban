@@ -467,6 +467,17 @@ class DB:
         )
         self.conn.commit()
 
+    def update_session(self, session_id: int, **fields) -> None:
+        """Generic UPDATE for sessions.<field>. Used for notes today (M4)."""
+        if not fields:
+            return
+        cols = ", ".join(f"{k}=?" for k in fields)
+        self.conn.execute(
+            f"UPDATE sessions SET {cols} WHERE id=?",
+            (*fields.values(), session_id),
+        )
+        self.conn.commit()
+
     def end_session(
         self, session_id: int, actual_seconds: int, completed: bool, interruption_count: int = 0
     ) -> None:
@@ -571,7 +582,7 @@ class DB:
         if project_id is None:
             rows = self.conn.execute(
                 "SELECT s.id, s.kind, s.started_at, s.ended_at, s.planned_seconds, s.actual_seconds,"
-                " s.completed, s.interruption_count,"
+                " s.completed, s.interruption_count, s.notes,"
                 " (SELECT GROUP_CONCAT(t.title, ', ') FROM session_tasks st"
                 "  JOIN tasks t ON t.id = st.task_id WHERE st.session_id = s.id) AS task_titles,"
                 " (SELECT GROUP_CONCAT(DISTINCT COALESCE(p.name, 'Inbox')) FROM session_tasks st"
@@ -584,7 +595,7 @@ class DB:
         else:
             rows = self.conn.execute(
                 "SELECT DISTINCT s.id, s.kind, s.started_at, s.ended_at, s.planned_seconds,"
-                " s.actual_seconds, s.completed, s.interruption_count,"
+                " s.actual_seconds, s.completed, s.interruption_count, s.notes,"
                 " (SELECT GROUP_CONCAT(t2.title, ', ') FROM session_tasks st2"
                 "  JOIN tasks t2 ON t2.id = st2.task_id WHERE st2.session_id = s.id) AS task_titles,"
                 " (SELECT GROUP_CONCAT(DISTINCT COALESCE(p2.name, 'Inbox')) FROM session_tasks st2"

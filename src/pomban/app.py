@@ -290,6 +290,10 @@ class PomodoroApp(App):
             # Close the current session as completed (focus ended naturally) then start lunch.
             if sid is not None:
                 self.sessions.end(sid, actual_seconds=actual, completed=True)
+                lunch_notes = (result.get("notes") or "").strip()
+                if lunch_notes:
+                    with contextlib.suppress(Exception):
+                        self.db.update_session(sid, notes=lunch_notes)
             self.current_session_id = None
             self.session_start_monotonic = None
             self.engine.confirm_advance(time.monotonic())  # advance state machine
@@ -302,6 +306,10 @@ class PomodoroApp(App):
             # Multi-task session: ask which of the active tasks are done.
             from pomban.screens.session_end import MultiCompleteModal
 
+            multi_notes = (result.get("notes") or "").strip()
+            if sid is not None and multi_notes:
+                with contextlib.suppress(Exception):
+                    self.db.update_session(sid, notes=multi_notes)
             tasks = list(self.active_tasks)
             self.push_screen(
                 MultiCompleteModal(tasks),
@@ -309,8 +317,12 @@ class PomodoroApp(App):
             )
             return
         completed_flag = action == "complete"
+        notes = (result.get("notes") or "").strip()
         if sid is not None:
             self.sessions.end(sid, actual_seconds=actual, completed=completed_flag)
+            if notes:
+                with contextlib.suppress(Exception):
+                    self.db.update_session(sid, notes=notes)
         self.current_session_id = None
         self.session_start_monotonic = None
         if action == "complete" and self.active_task is not None:
