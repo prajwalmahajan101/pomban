@@ -5,7 +5,8 @@ from __future__ import annotations
 import contextlib
 import shutil
 import subprocess
-from dataclasses import dataclass
+from dataclasses import dataclass, field
+from datetime import datetime, time
 
 
 @dataclass
@@ -14,6 +15,9 @@ class NotifyConfig:
     bell: bool = True
     sound: bool = True
     sound_file: str | None = None  # default: aplay/paplay's bundled freedesktop sound
+    # Inclusive [start, end] window — outside it desktop popups + sound are
+    # suppressed (bell + visual flash still fire). ``None`` disables the gate.
+    working_hours: tuple[time, time] | None = field(default=None)
 
 
 def _spawn(cmd: list[str]) -> None:
@@ -68,10 +72,23 @@ def run_hook(command: str | None, env_extra: dict | None = None) -> None:
             pass
 
 
+def within_working_hours(cfg: NotifyConfig, now: datetime | None = None) -> bool:
+    """True iff cfg has no window, or ``now`` falls inside [start, end] (inclusive)."""
+    if cfg.working_hours is None:
+        return True
+    start, end = cfg.working_hours
+    t = (now or datetime.now()).time()
+    if start <= end:
+        return start <= t <= end
+    # Overnight window (e.g. 22:00–06:00).
+    return t >= start or t <= end
+
+
 def fire(title: str, body: str, cfg: NotifyConfig) -> None:
-    if cfg.desktop:
+    quiet = not within_working_hours(cfg)
+    if cfg.desktop and not quiet:
         desktop(title, body)
-    if cfg.sound:
+    if cfg.sound and not quiet:
         play_sound(cfg.sound_file)
     # Terminal bell + visual flash handled inside the Textual app (see app.py),
     # because they need to write to the active screen.

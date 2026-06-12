@@ -71,10 +71,21 @@ class ContextHeader(Static):
 
     @staticmethod
     def _warn_segment(app) -> str:
+        parts: list[str] = []
         try:
             n = app.db.count_today_interruptions()
         except Exception:
+            n = 0
+        if n > 0:
+            parts.append(f"[yellow]⚠ {n} today[/]")
+        # `· quiet` chip when desktop notifications are gated by working_hours.
+        try:
+            from pomban.notifications import within_working_hours
+
+            if not within_working_hours(app.notify_cfg):
+                parts.append("[dim]· quiet[/]")
+        except Exception:
+            pass
+        if not parts:
             return ""
-        if n <= 0:
-            return ""
-        return f"  ·  [yellow]⚠ {n} today[/]"
+        return "  ·  " + "  ".join(parts)
