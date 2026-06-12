@@ -172,6 +172,7 @@ class PomodoroApp(App):
         plugin_registry().discover()
         self._maybe_prompt_resume()
         self._maybe_prompt_first_run()
+        self._maybe_show_startup_help()
         self.set_interval(0.25, self._tick)
         with contextlib.suppress(Exception):
             self.theme = THEMES[self._theme_idx]
@@ -617,6 +618,54 @@ class PomodoroApp(App):
         intro = getattr(self.screen, "HELP_INTRO", None)
         title = f"pomban — {self.screen.__class__.__name__.removesuffix('Screen')}"
         self.push_screen(HelpScreen(snapshot, intro=intro, title=title))
+
+    def _maybe_show_startup_help(self) -> None:
+        """Push the welcome walkthrough (first launch only) or a rotating tip.
+
+        Gated by ``[ui].show_startup_tips``. Defers entirely when
+        ``_maybe_prompt_first_run`` has already pushed FirstRunModal on top
+        of the stack — we don't want two onboarding overlays competing for
+        focus on an empty-DB launch. The welcome surface will then fire on
+        the next launch (after the user has created their first project).
+        """
+        if not self._first_run_check:
+            return
+        try:
+            if not getattr(self.config.ui, "show_startup_tips", True):
+                return
+        except Exception:
+            return
+        try:
+            if self._facade.is_first_run():
+                return
+        except Exception:
+            return
+        from pomban.screens.welcome import (
+            StartupTipModal,
+            WelcomeModal,
+            pick_next_tip,
+        )
+
+        try:
+            seen = self.db.kv_get("welcome_seen")
+        except Exception:
+            log.exception("kv_get(welcome_seen) failed")
+            return
+        if seen is None:
+            with contextlib.suppress(Exception):
+                self.db.kv_set("welcome_seen", "1")
+            self.push_screen(WelcomeModal())
+            return
+        try:
+            raw = self.db.kv_get("tip_index") or "0"
+            seen_index = int(raw)
+        except (ValueError, Exception):
+            seen_index = 0
+        tip, next_index = pick_next_tip(seen_index)
+        with contextlib.suppress(Exception):
+            self.db.kv_set("tip_index", str(next_index))
+        if tip:
+            self.push_screen(StartupTipModal(tip))
 
     def _maybe_prompt_first_run(self) -> None:
         """Empty-DB launch: push FirstRunModal to seed an initial project."""

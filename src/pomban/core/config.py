@@ -50,6 +50,10 @@ class NotifySection:
 class UISection:
     theme: str = "nord"
     mouse: bool = False
+    # Show the full how-to walkthrough on first launch, then a single rotating
+    # tip on every subsequent launch. Both are dismissible. Set false to
+    # disable forever.
+    show_startup_tips: bool = True
 
 
 @dataclass
