@@ -20,9 +20,10 @@ from __future__ import annotations
 
 import time
 from dataclasses import dataclass, field
+from datetime import date, timedelta
 
 from pomban.core import log
-from pomban.core.models import Task
+from pomban.core.models import Sprint, Task
 from pomban.core.session_coordinator import SessionCoordinator
 from pomban.core.session_service import SessionService
 from pomban.core.timer_engine import Event, Phase, Settings, TimerEngine
@@ -68,6 +69,7 @@ class PombanEngine:
         plugin_registry=None,
         hooks=None,
         run_hook=None,
+        filters=None,
     ) -> None:
         self.db = db
         self.sessions = sessions or SessionService(db)
@@ -76,6 +78,10 @@ class PombanEngine:
         self._plugin_registry = plugin_registry
         self._hooks = hooks
         self._run_hook = run_hook
+        # FilterState reference so engine.active_sprint / sprint-target checks
+        # can read the user's active sprint without going through the app shell.
+        # Optional so unit tests can drive the engine without a filter store.
+        self._filters = filters
         self.active_tasks: list[Task] = []
         self.active_chip_index: int = 0
 
@@ -217,6 +223,77 @@ class PombanEngine:
         self.timer.start(time.monotonic())
         self.log_new_session()
         return True
+
+    # ---------- sprint surface (M3) ----------
+    @property
+    def active_sprint(self) -> Sprint | None:
+        """Sprint the user is currently focused on (per FilterState), or None."""
+        if self._filters is None or self._filters.sprint_id is None:
+            return None
+        try:
+            return self.db.get_sprint(self._filters.sprint_id)
+        except Exception:
+            log.exception("active_sprint: get_sprint failed")
+            return None
+
+    def active_sprint_progress(self) -> dict | None:
+        """Combined ``sprint_progress`` payload + the sprint row, or None.
+
+        Returned dict keys: ``target``, ``completed``, ``pct``, ``days_left``,
+        ``pace``, ``on_track``, ``sprint``. UI reads this to render headers
+        and the runner overlay without two round trips.
+        """
+        sp = self.active_sprint
+        if sp is None:
+            return None
+        try:
+            payload = dict(self.db.sprint_progress(sp.id))
+        except Exception:
+            log.exception("active_sprint_progress: sprint_progress failed")
+            return None
+        payload["sprint"] = sp
+        return payload
+
+    def sprint_tasks(self, sprint_id: int) -> list[Task]:
+        """All tasks (any status) belonging to the given sprint."""
+        try:
+            return self.db.list_tasks(sprint_id=sprint_id, include_done=True)
+        except Exception:
+            log.exception("sprint_tasks: list_tasks failed")
+            return []
+
+    def create_sprint_for_project(
+        self, project_id: int, name: str | None = None, days: int = 14
+    ) -> Sprint:
+        """Create + activate a sprint scoped to the project.
+
+        Auto-names ``"Sprint N"`` based on the project's existing sprint count
+        when ``name`` is None. Default duration 14 days; ``pomodoro_target``
+        starts at 0 and can be edited later. Activation deactivates any sibling.
+        """
+        if name is None:
+            existing = self.db.list_sprints(project_id=project_id)
+            name = f"Sprint {len(existing) + 1}"
+        today = date.today()
+        end = today + timedelta(days=days)
+        sp = self.db.add_sprint(
+            project_id,
+            name,
+            today.isoformat(),
+            end.isoformat(),
+            goal="",
+            status="planned",
+        )
+        self.db.activate_sprint(sp.id)
+        return self.db.get_sprint(sp.id)
+
+    def close_sprint(self, sprint_id: int, retrospective: str) -> None:
+        """Mark sprint completed with a retrospective note."""
+        self.db.update_sprint(sprint_id, status="completed", retrospective=retrospective)
+
+    def update_sprint_retro(self, sprint_id: int, retrospective: str) -> None:
+        """Update the retrospective without changing status (used by ``e`` edit)."""
+        self.db.update_sprint(sprint_id, retrospective=retrospective)
 
     # ---------- first-run detection (M3) ----------
     def is_first_run(self) -> bool:
