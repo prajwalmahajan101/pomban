@@ -7,6 +7,14 @@ the project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html
 
 ## [Unreleased]
 
+## [0.2.0] — 2026-06-12
+
+The "personal productivity platform" release. Tasks now live inside
+sprints inside projects, every screen carries that context, and the
+focus loop grows blocker capture, session notes, a Today digest, and
+quiet-hours-aware notifications. Exports gain CSV / JSON / grouped
+markdown for downstream review.
+
 ### Changed
 - **Renamed package from `pomodoro` to `pomban`.** PyPI distribution,
   CLI binary, Python package, and XDG directories all migrate to the
@@ -15,8 +23,50 @@ the project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html
   and `~/.config/pomodoro/` directories (and the `pomodoro.db` /
   `pomodoro.log` files inside them) to their `pomban` equivalents.
   No-op when the new paths already exist.
+- **Schema v10** — `tasks.project_id` becomes NOT NULL (legacy rows
+  migrate to an auto-seeded "Inbox" project); `tasks.sprint_id` /
+  `sprints.project_id` FKs added; "one active sprint per project"
+  enforced in code (see [ADR-0005](docs/adr/0005-project-sprint-task-hierarchy.md)).
+- **README + docs site** reframed around the platform model
+  (Plan / Focus / Review / Integrate) rather than "Pomodoro TUI".
+- **Notifications** route through a single
+  `notifications.notify(...)` funnel that consults the
+  working-hours gate before firing desktop popup / sound channels.
 
 ### Added
+- **Project → sprint → task hierarchy** as the platform's planning
+  model. Inline `@project` / `!sprint` / `#tag` / `~N` syntax for
+  keyboard-driven assignment ([ADR-0005](docs/adr/0005-project-sprint-task-hierarchy.md)).
+- **Context header** on every screen — active project + sprint chip
+  + quiet-state chip, refreshed on every tick.
+- **Dashboard + Kanban sprint panels** — current sprint progress
+  pinned to the planning screens.
+- **`PombanEngine` facade** (`core/engine.py`) owns timer +
+  session orchestration end-to-end. `app.py` loses ~200 lines of
+  lifecycle plumbing ([ADR-0006](docs/adr/0006-pomban-engine-facade.md)).
+- **`FirstRunModal`** — empty-DB launches walk through creating
+  the first project so the hierarchy is never empty.
+- **`SprintRunnerScreen`** (`Shift+R`) — overlay with the current
+  sprint goal pinned regardless of which screen is active.
+- **`SprintCompleteScreen`** — fires when `pomodoro_target` is
+  crossed; closes the sprint with a retro field.
+- **Inline `s` binding** on the Projects screen creates and
+  activates a sprint for the focused project in one keystroke.
+- **Blocker capture (`b`)** — log a one-line blocker against the
+  live focus session without breaking the timer.
+- **Session notes** — session-end modal field surfaces inline on
+  the History screen.
+- **Today digest (`7`)** — daily recap screen with sessions, top
+  tasks, interruptions, and blocker list bound to the `7` digit.
+- **Per-tag analytics panel** on the Stats screen (`3`),
+  powered by `minutes_per_tag`.
+- **Exports** — `pomban export --format csv|json|markdown`. The
+  grouped-markdown format buckets sessions by project → sprint →
+  task. `pomban sprint export …` for per-sprint reports.
+- **Working-hours quiet** — `[breaks].working_hours_start` /
+  `working_hours_end` ("HH:MM") suppress desktop popup + sound
+  outside the window; the in-TUI bell still fires; header chip
+  reflects the current quiet state ([ADR-0004](docs/adr/0004-working-hours-quiet.md)).
 - `ROADMAP.md` and `RELEASE_PLAN.md` at the repo root — forward-looking
   phase plan and the mechanics of cutting a release (tag-driven via
   `release.yml`).
@@ -30,8 +80,13 @@ the project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html
   `.github/workflows/docs.yml` on every push to `main` that touches
   the docs.
 - **Architecture Decision Records** under `docs/adr/`. Seeded with
-  three retrospective ADRs: stack choice, single-SQLite-connection
-  policy, and the layered-screen architecture.
+  three retrospective ADRs (stack choice, single-SQLite-connection
+  policy, layered-screen architecture); v0.2.0 adds three more —
+  [ADR-0004](docs/adr/0004-working-hours-quiet.md) (working-hours
+  quiet), [ADR-0005](docs/adr/0005-project-sprint-task-hierarchy.md)
+  (PM hierarchy), and
+  [ADR-0006](docs/adr/0006-pomban-engine-facade.md) (`PombanEngine`
+  facade).
 - **`scripts/capture_screenshots.py`** — Textual pilot harness that
   drives `PomodoroApp` against an in-memory DB and emits hero SVGs
   for the dashboard, kanban, and stats screens.
@@ -121,5 +176,6 @@ Tracked in [`.code_review/code_review_issues.md`](https://github.com/prajwalmaha
   all landed. Music removal trimmed the remaining UI-action surface.
 - **ISSUE-012 — swallowed excepts** (resolved): see _Fixed_ above.
 
-[Unreleased]: https://github.com/prajwalmahajan101/pomban/compare/v0.1.0...HEAD
+[Unreleased]: https://github.com/prajwalmahajan101/pomban/compare/v0.2.0...HEAD
+[0.2.0]: https://github.com/prajwalmahajan101/pomban/compare/v0.1.0...v0.2.0
 [0.1.0]: https://github.com/prajwalmahajan101/pomban/releases/tag/v0.1.0
