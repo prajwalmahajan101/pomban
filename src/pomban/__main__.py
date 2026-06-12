@@ -68,21 +68,43 @@ def _sprint_export(args: list[str]) -> None:
     db.close()
 
 
+def _parse_export_args(args: list[str]) -> tuple[int, str, str | None]:
+    """Return (days, format, group_by) parsed from ``pomban export ...`` argv tail."""
+    days = 7
+    fmt = "markdown"
+    group_by: str | None = None
+    for i, arg in enumerate(args):
+        if arg == "--since" and i + 1 < len(args):
+            v = args[i + 1].rstrip("d")
+            with contextlib.suppress(ValueError):
+                days = int(v)
+        elif arg == "--format" and i + 1 < len(args):
+            v = args[i + 1].lower()
+            if v in ("markdown", "md", "csv", "json"):
+                fmt = "markdown" if v == "md" else v
+        elif arg == "--group-by" and i + 1 < len(args):
+            v = args[i + 1].lower()
+            if v in ("project", "sprint", "tag"):
+                group_by = v
+    return days, fmt, group_by
+
+
 def main() -> None:
     args = sys.argv[1:]
     if args and args[0] == "export":
         from pomban.core.db import DB
-        from pomban.core.exporter import export_markdown
+        from pomban.core.exporter import export_csv, export_json, export_markdown
 
-        days = 7
-        for i, arg in enumerate(args):
-            if arg == "--since" and i + 1 < len(args):
-                v = args[i + 1].rstrip("d")
-                with contextlib.suppress(ValueError):
-                    days = int(v)
+        days, fmt, group_by = _parse_export_args(args[1:])
         db = DB()
-        sys.stdout.write(export_markdown(db, days=days))
-        sys.stdout.write("\n")
+        if fmt == "csv":
+            sys.stdout.write(export_csv(db, days=days, group_by=group_by))
+        elif fmt == "json":
+            sys.stdout.write(export_json(db, days=days, group_by=group_by))
+            sys.stdout.write("\n")
+        else:
+            sys.stdout.write(export_markdown(db, days=days, group_by=group_by))
+            sys.stdout.write("\n")
         db.close()
         return
     if args and args[0] == "sprint" and len(args) >= 2 and args[1] == "export":
