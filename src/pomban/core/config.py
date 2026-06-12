@@ -70,6 +70,10 @@ class BreaksSection:
     lunch_minutes: int = 45
     lunch_window_start: str = ""  # "HH:MM" — empty disables the suggestion
     lunch_window_end: str = ""
+    # Outside this window, desktop popups + sound are suppressed (bell/flash
+    # still fire). Empty strings disable the gate.
+    working_hours_start: str = ""
+    working_hours_end: str = ""
 
 
 @dataclass
@@ -193,12 +197,28 @@ def to_settings(cfg: Config):
     )
 
 
+def _parse_hhmm(s: str):
+    from datetime import time
+
+    if not s:
+        return None
+    try:
+        h, m = s.split(":", 1)
+        return time(int(h), int(m))
+    except (ValueError, TypeError):
+        return None
+
+
 def to_notify_config(cfg: Config):
     from pomban.notifications import NotifyConfig
 
+    start = _parse_hhmm(cfg.breaks.working_hours_start)
+    end = _parse_hhmm(cfg.breaks.working_hours_end)
+    window = (start, end) if (start is not None and end is not None) else None
     return NotifyConfig(
         desktop=cfg.notifications.desktop,
         bell=cfg.notifications.bell_and_flash,
         sound=cfg.notifications.sound,
         sound_file=cfg.notifications.sound_file,
+        working_hours=window,
     )
