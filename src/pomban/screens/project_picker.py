@@ -9,13 +9,16 @@ Dismisses with:
 
 from __future__ import annotations
 
+from typing import TYPE_CHECKING
+
 from textual.app import ComposeResult
 from textual.binding import Binding
 from textual.containers import Center, Vertical
 from textual.screen import ModalScreen
 from textual.widgets import ListItem, ListView, Static
 
-from pomban.core.models import Project
+if TYPE_CHECKING:
+    from pomban.core.models import Project
 
 
 class _PickItem(ListItem):
