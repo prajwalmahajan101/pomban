@@ -15,7 +15,7 @@ later phases assume the earlier ones landed.
 | Phase 1 — Timer + Dashboard | [`v0.1.0`](https://github.com/prajwalmahajan101/pomban/releases/tag/v0.1.0) | shipped |
 | Phase 2 — Boards + Filters | [`v0.1.0`](https://github.com/prajwalmahajan101/pomban/releases/tag/v0.1.0) | shipped |
 | Phase 3 — Cleanup + Closures | (unreleased; lands on `main`) | merged |
-| Phase 4 — PM reframing + release | `v0.2.0` (planned) | in progress |
+| Phase 4 — PM reframing + release | [`v0.2.0`](https://github.com/prajwalmahajan101/pomban/releases/tag/v0.2.0) | shipped |
 | Phase 5 — Notifications + Sound polish | `v0.3.0` (planned) | planned |
 | Phase 6 — Sync hardening | `v0.4.0` (planned) | planned |
 | Phase 7 — Plugin surface | `v1.0.0` (planned) | planned |
@@ -44,7 +44,7 @@ sites routed to `log.exception`; ISSUE-001 closed as won't-fix
 (see [ADR-0002](https://github.com/prajwalmahajan101/pomban/blob/main/docs/adr/0002-single-sqlite-connection.md));
 ISSUE-005 / ISSUE-012 resolved. Folded into the next tagged release.
 
-## Phase 4 — Project-management reframing + release `(in progress — targets v0.2.0)`
+## Phase 4 — Project-management reframing + release `(shipped 2026-06-12 as v0.2.0)`
 
 **Goal.** Reframe pomban as a project-management TUI — make the
 **Project → Sprint → Task → Pomodoro** hierarchy visible and
@@ -60,15 +60,15 @@ M1 / M5 below.
 [`.planning/v0.2.0-milestones.md`](.planning/v0.2.0-milestones.md)
 for the commit-by-commit breakdown).
 
-- **M1 — Foundations & release prep.** Schema v10
+- **M1 — Foundations & release prep.** ✓ shipped. Schema v10
   (`sessions.notes`), `db.sprint_progress` + `db.minutes_per_tag`
   helpers, PyPI metadata (`name = "pomban"`, classifiers, keywords),
   `mkdocs-material<2.0` pin, fixed `scripts/capture_screenshots.py`.
-- **M2 — Hierarchy made first-class.** Persistent context header on
+- **M2 — Hierarchy made first-class.** ✓ shipped. Persistent context header on
   every `AppScreen`, sprint-aware Dashboard + timer chip, Kanban
   reframed as sprint/project/all-tasks board, project required on
   task creation (picker fallback).
-- **M2.5 — Engine / presenter decoupling.** Extract a
+- **M2.5 — Engine / presenter decoupling.** ✓ shipped. Extract a
   `PombanEngine` facade in `core/engine.py` that owns the
   long-lived domain objects (DB, `TimerEngine`,
   `SessionCoordinator`, `FilterState`, `Settings`) and exposes a
@@ -78,14 +78,14 @@ for the commit-by-commit breakdown).
   `notify`, screen routing). Inserted before M3 so the four new
   M3 screens land on the new facade from day one. No
   user-visible change.
-- **M3 — Sprint lifecycle UX.** First-run project modal, sprint
+- **M3 — Sprint lifecycle UX.** ✓ shipped. First-run project modal, sprint
   runner overlay (`Shift+R`), sprint-completion modal at target,
   inline `s` "new sprint" on the Projects screen.
-- **M4 — Supporting features.** Mid-focus blocker capture (`b`),
+- **M4 — Supporting features.** ✓ shipped. Mid-focus blocker capture (`b`),
   session notes UI + history column, "Today" digest (`7`), per-tag
   analytics on Stats, structured CSV/JSON/grouped-markdown exports,
   working-hours notification suppression.
-- **M5 — Docs reframing + tag push.** README + docs/site rewrite
+- **M5 — Docs reframing + tag push.** ✓ shipped. README + docs/site rewrite
   around the PM framing, ADR-0004 (working hours) + ADR-0005 (PM
   hierarchy), CHANGELOG `[0.2.0]`, ROADMAP Phase 4 → shipped,
   pyproject bump + tag → `release.yml`.
