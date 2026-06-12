@@ -72,7 +72,7 @@ class TodayScreen(AppScreen):
     def _refresh_context(self) -> None:
         proj = self.app.active_project_label() or "All"
         sprint_payload = self.app._facade.active_sprint_progress()
-        lines = [f"[panel-title]Today[/]", "", f"Project: [b]{escape(proj)}[/]"]
+        lines = ["[panel-title]Today[/]", "", f"Project: [b]{escape(proj)}[/]"]
         if sprint_payload is not None:
             sp = sprint_payload["sprint"]
             target = sprint_payload["target"]

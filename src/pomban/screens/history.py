@@ -64,6 +64,6 @@ class HistoryScreen(AppScreen):
                 _dur(row["actual_seconds"]),
                 "✓" if row["completed"] else "·",
                 str(row["interruption_count"] or 0),
-                (row["notes"] if "notes" in row.keys() else "") or "",
+                (row.get("notes", "")) or "",
                 row.get("task_titles") or "",
             )

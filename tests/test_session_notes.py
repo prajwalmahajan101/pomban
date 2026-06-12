@@ -90,7 +90,7 @@ async def test_history_screen_renders_notes_column():
             assert "Notes" in cols
             # Confirm the seeded note appears in some row.
             seen = []
-            for row_key in table.rows.keys():
+            for row_key in table.rows:
                 row_data = table.get_row(row_key)
                 seen.extend(str(c) for c in row_data)
             assert any("end of day" in s for s in seen)

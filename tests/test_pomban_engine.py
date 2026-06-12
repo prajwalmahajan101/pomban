@@ -166,9 +166,7 @@ def test_finalize_multi_complete_with_none_ids_does_not_mark_task_done(engine):
     engine.finalize_multi_complete(sid, actual=0, ids=None)
     # The focus row closed, but no task was flipped to done because no ids
     # were passed in.
-    row = engine.db.conn.execute(
-        "SELECT completed FROM sessions WHERE id=?", (sid,)
-    ).fetchone()
+    row = engine.db.conn.execute("SELECT completed FROM sessions WHERE id=?", (sid,)).fetchone()
     assert row["completed"] == 1
     assert engine.db.get_task(a.id).status != "done"
 

@@ -425,10 +425,7 @@ class PomodoroApp(App):
         if result is None or pending is None:
             return
         text, on_created = pending
-        if result == -1 or result == 0:
-            project_id = None
-        else:
-            project_id = int(result)
+        project_id = None if result == -1 or result == 0 else int(result)
         from pomban.core.task_input import parse_task_input
 
         parsed = parse_task_input(text)
