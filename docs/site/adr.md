@@ -11,6 +11,9 @@ in the repo.
 | [0001](https://github.com/prajwalmahajan101/pomban/blob/main/docs/adr/0001-stack-choice.md) | Stack choice — Textual + SQLite + XDG paths |
 | [0002](https://github.com/prajwalmahajan101/pomban/blob/main/docs/adr/0002-single-sqlite-connection.md) | Single SQLite connection — no writer thread |
 | [0003](https://github.com/prajwalmahajan101/pomban/blob/main/docs/adr/0003-layered-screen-architecture.md) | Layered screen architecture and the `AppScreen` contract |
+| [0004](https://github.com/prajwalmahajan101/pomban/blob/main/docs/adr/0004-working-hours-quiet.md) | Working-hours quiet — config-driven notification suppression |
+| [0005](https://github.com/prajwalmahajan101/pomban/blob/main/docs/adr/0005-project-sprint-task-hierarchy.md) | Project → sprint → task hierarchy and inline assignment syntax |
+| [0006](https://github.com/prajwalmahajan101/pomban/blob/main/docs/adr/0006-pomban-engine-facade.md) | `PombanEngine` facade for timer + session orchestration |
 
 ## When to write a new one
 

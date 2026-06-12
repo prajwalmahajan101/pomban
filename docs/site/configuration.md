@@ -69,6 +69,11 @@ lunch_minutes      = 45
 # window and you haven't logged a long_pause today. Empty strings disable.
 lunch_window_start = ""   # e.g. "12:30"
 lunch_window_end   = ""   # e.g. "13:30"
+# Working-hours quiet window. Outside this window, desktop popups and
+# sound notifications are suppressed; the in-TUI bell still fires and
+# the header shows a "quiet" chip. Empty strings disable the gate.
+working_hours_start = ""  # e.g. "09:00"
+working_hours_end   = ""  # e.g. "18:00"
 
 [kanban]
 # Per-column work-in-progress limits; 0 = unlimited. A column over its limit is
