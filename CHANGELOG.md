@@ -26,7 +26,7 @@ markdown for downstream review.
 - **Schema v10** — `tasks.project_id` becomes NOT NULL (legacy rows
   migrate to an auto-seeded "Inbox" project); `tasks.sprint_id` /
   `sprints.project_id` FKs added; "one active sprint per project"
-  enforced in code (see [ADR-0005](docs/adr/0005-project-sprint-task-hierarchy.md)).
+  enforced in code (see [ADR-0005](https://github.com/prajwalmahajan101/pomban/blob/main/docs/adr/0005-project-sprint-task-hierarchy.md)).
 - **README + docs site** reframed around the platform model
   (Plan / Focus / Review / Integrate) rather than "Pomodoro TUI".
 - **Notifications** route through a single
@@ -36,14 +36,14 @@ markdown for downstream review.
 ### Added
 - **Project → sprint → task hierarchy** as the platform's planning
   model. Inline `@project` / `!sprint` / `#tag` / `~N` syntax for
-  keyboard-driven assignment ([ADR-0005](docs/adr/0005-project-sprint-task-hierarchy.md)).
+  keyboard-driven assignment ([ADR-0005](https://github.com/prajwalmahajan101/pomban/blob/main/docs/adr/0005-project-sprint-task-hierarchy.md)).
 - **Context header** on every screen — active project + sprint chip
   + quiet-state chip, refreshed on every tick.
 - **Dashboard + Kanban sprint panels** — current sprint progress
   pinned to the planning screens.
 - **`PombanEngine` facade** (`core/engine.py`) owns timer +
   session orchestration end-to-end. `app.py` loses ~200 lines of
-  lifecycle plumbing ([ADR-0006](docs/adr/0006-pomban-engine-facade.md)).
+  lifecycle plumbing ([ADR-0006](https://github.com/prajwalmahajan101/pomban/blob/main/docs/adr/0006-pomban-engine-facade.md)).
 - **`FirstRunModal`** — empty-DB launches walk through creating
   the first project so the hierarchy is never empty.
 - **`SprintRunnerScreen`** (`Shift+R`) — overlay with the current
@@ -66,7 +66,7 @@ markdown for downstream review.
 - **Working-hours quiet** — `[breaks].working_hours_start` /
   `working_hours_end` ("HH:MM") suppress desktop popup + sound
   outside the window; the in-TUI bell still fires; header chip
-  reflects the current quiet state ([ADR-0004](docs/adr/0004-working-hours-quiet.md)).
+  reflects the current quiet state ([ADR-0004](https://github.com/prajwalmahajan101/pomban/blob/main/docs/adr/0004-working-hours-quiet.md)).
 - `ROADMAP.md` and `RELEASE_PLAN.md` at the repo root — forward-looking
   phase plan and the mechanics of cutting a release (tag-driven via
   `release.yml`).
@@ -82,10 +82,10 @@ markdown for downstream review.
 - **Architecture Decision Records** under `docs/adr/`. Seeded with
   three retrospective ADRs (stack choice, single-SQLite-connection
   policy, layered-screen architecture); v0.2.0 adds three more —
-  [ADR-0004](docs/adr/0004-working-hours-quiet.md) (working-hours
-  quiet), [ADR-0005](docs/adr/0005-project-sprint-task-hierarchy.md)
+  [ADR-0004](https://github.com/prajwalmahajan101/pomban/blob/main/docs/adr/0004-working-hours-quiet.md) (working-hours
+  quiet), [ADR-0005](https://github.com/prajwalmahajan101/pomban/blob/main/docs/adr/0005-project-sprint-task-hierarchy.md)
   (PM hierarchy), and
-  [ADR-0006](docs/adr/0006-pomban-engine-facade.md) (`PombanEngine`
+  [ADR-0006](https://github.com/prajwalmahajan101/pomban/blob/main/docs/adr/0006-pomban-engine-facade.md) (`PombanEngine`
   facade).
 - **`scripts/capture_screenshots.py`** — Textual pilot harness that
   drives `PomodoroApp` against an in-memory DB and emits hero SVGs

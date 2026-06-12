@@ -5,7 +5,7 @@ Everything a user needs, in the order you'll meet it.
 ## Contents
 
 1. [Quickstart](#quickstart)
-2. [The Pomodoro cycle](#the-pomban-cycle)
+2. [The Pomodoro cycle](#the-pomodoro-cycle)
 3. [Tasks](#tasks)
 4. [Projects (and the Inbox)](#projects-and-the-inbox)
 5. [Sprints](#sprints)
@@ -20,7 +20,7 @@ Everything a user needs, in the order you'll meet it.
 14. [Notifications](#notifications)
 15. [Hooks (shell commands on phase change)](#hooks)
 16. [Resume on restart](#resume-on-restart)
-17. [Markdown export & sprint reports](#markdown-export)
+17. [Exports](#exports)
 18. [Data locations](#data-locations)
 
 ## Inline task syntax
