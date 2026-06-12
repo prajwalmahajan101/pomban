@@ -295,6 +295,44 @@ class PombanEngine:
         """Update the retrospective without changing status (used by ``e`` edit)."""
         self.db.update_sprint(sprint_id, retrospective=retrospective)
 
+    def check_sprint_target_hit(self, session_id: int | None) -> Sprint | None:
+        """Return the active sprint iff ``session_id`` just made it hit ``pomodoro_target``.
+
+        Conditions, all required: the session was a completed focus session, its
+        task belongs to the active sprint, the sprint has a non-zero target, and
+        the total now equals or exceeds the target after previously sitting below
+        it (so the modal fires exactly once per crossing, not on every later
+        focus while at/over target).
+        """
+        if session_id is None:
+            return None
+        sp = self.active_sprint
+        if sp is None:
+            return None
+        target = sp.pomodoro_target or 0
+        if target <= 0:
+            return None
+        try:
+            row = self.db.conn.execute(
+                "SELECT 1 FROM sessions s JOIN session_tasks st ON st.session_id=s.id"
+                " JOIN tasks t ON t.id=st.task_id"
+                " WHERE s.id=? AND s.kind='focus' AND s.completed=1 AND t.sprint_id=?",
+                (session_id, sp.id),
+            ).fetchone()
+        except Exception:
+            log.exception("check_sprint_target_hit: session lookup failed")
+            return None
+        if row is None:
+            return None
+        progress = self.db.sprint_progress(sp.id)
+        completed = progress["completed"]
+        if completed < target:
+            return None
+        if (completed - 1) >= target:
+            # Boundary was already crossed in a previous session.
+            return None
+        return sp
+
     # ---------- first-run detection (M3) ----------
     def is_first_run(self) -> bool:
         """True when the library has no user-created projects yet.

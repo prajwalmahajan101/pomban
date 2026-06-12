@@ -236,7 +236,9 @@ class PomodoroApp(App):
             # Classic Pomodoro flow: advance straight to the next phase, no modal.
             # The session ended naturally (completed), but we do NOT mark the active
             # task(s) done — timer expiry isn't completion intent; they stay in Doing.
+            sid_before_end = self.current_session_id
             self.coord.end(actual, completed=True)
+            self._maybe_present_sprint_complete(sid_before_end)
             self.engine.confirm_advance(time.monotonic())
             self._log_new_session()
             self._refresh_all()
@@ -313,6 +315,8 @@ class PomodoroApp(App):
         if action == "complete" and self.active_task is not None:
             self.db.set_task_status(self.active_task.id, "done")
             self.active_task = None
+        if completed_flag:
+            self._maybe_present_sprint_complete(sid)
         self.engine.confirm_advance(time.monotonic())
         self._log_new_session()
         self._refresh_all()
@@ -796,6 +800,50 @@ class PomodoroApp(App):
 
     def active_project_color(self) -> str:
         return self.filters.project_color()
+
+    def _maybe_present_sprint_complete(self, session_id: int | None) -> None:
+        """Push SprintCompleteModal iff the just-ended session crossed the target."""
+        sprint = self._facade.check_sprint_target_hit(session_id)
+        if sprint is None:
+            return
+        from pomban.screens.sprint_complete import SprintCompleteModal
+
+        progress = self.db.sprint_progress(sprint.id)
+        modal = SprintCompleteModal(
+            sprint_name=sprint.name,
+            completed=progress["completed"],
+            target=progress["target"],
+        )
+
+        def _present() -> None:
+            self.push_screen(modal, lambda choice: self._on_sprint_complete(sprint.id, choice))
+
+        # Deferred so we never push from inside a tick callback.
+        self.call_after_refresh(_present)
+
+    def _on_sprint_complete(self, sprint_id: int, choice: str | None) -> None:
+        if choice != "close_retro":
+            return
+        from pomban.screens.sprint_runner import RetroModal
+
+        try:
+            sp = self.db.get_sprint(sprint_id)
+            initial = sp.retrospective or ""
+        except Exception:
+            log.exception("loading sprint %s for retro failed", sprint_id)
+            initial = ""
+        self.push_screen(
+            RetroModal("Sprint retrospective", initial=initial),
+            lambda retro: self._on_post_complete_retro(sprint_id, retro),
+        )
+
+    def _on_post_complete_retro(self, sprint_id: int, retro: str | None) -> None:
+        if retro is None:
+            return
+        self._facade.close_sprint(sprint_id, retro)
+        self.set_active_sprint(None)
+        with contextlib.suppress(Exception):
+            self.notify("Sprint closed.", timeout=2)
 
     def action_open_sprint_runner(self) -> None:
         """Push :class:`SprintRunnerScreen` when an active sprint exists."""
