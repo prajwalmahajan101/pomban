@@ -53,14 +53,24 @@ class ProjectPickerModal(ModalScreen[int | None]):
             items.append(_PickItem(0, "[reverse white] Inbox [/]  unfiled tasks"))
             for p in self.projects:
                 items.append(_PickItem(p.id, f"[reverse {p.color}] {p.name} [/]"))
-            yield ListView(*items)
+            yield ListView(*items, initial_index=0)
+
+    def on_mount(self) -> None:
+        self.query_one(ListView).focus()
+
+    def on_list_view_selected(self, event: ListView.Selected) -> None:
+        if isinstance(event.item, _PickItem):
+            self.dismiss(event.item.pick_value)
+        else:
+            self.dismiss(None)
 
     def action_pick(self) -> None:
         lv = self.query_one(ListView)
-        if lv.index is None:
+        idx = lv.index if lv.index is not None else 0
+        if not lv.children:
             self.dismiss(None)
             return
-        child = lv.children[lv.index]
+        child = lv.children[idx]
         if isinstance(child, _PickItem):
             self.dismiss(child.pick_value)
         else:
