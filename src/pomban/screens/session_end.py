@@ -16,10 +16,48 @@ from textual.app import ComposeResult
 from textual.binding import Binding
 from textual.containers import Center, Vertical
 from textual.screen import ModalScreen
-from textual.widgets import ListItem, ListView, Static
+from textual.widgets import Input, ListItem, ListView, Static
 
 from pomban.core.models import Task
 from pomban.core.timer_engine import Phase
+
+
+class _NoteModal(ModalScreen[str | None]):
+    """Single-line note entry pushed from SessionEndScreen on `n`.
+
+    Dismisses with the trimmed string (Enter, may be empty) or ``None`` (Esc).
+    Empty string is treated as "explicit cancel of any prior note".
+    """
+
+    DEFAULT_CSS = """
+    _NoteModal { align: center middle; }
+    _NoteModal > Center > Vertical {
+        width: 64; height: auto;
+        background: $surface;
+        border: round $primary;
+        padding: 1 2;
+    }
+    _NoteModal Input { margin-top: 1; }
+    """
+    BINDINGS = [Binding("escape", "cancel", "Cancel")]
+
+    def __init__(self, initial: str = "") -> None:
+        super().__init__()
+        self._initial = initial
+
+    def compose(self) -> ComposeResult:
+        with Center(), Vertical():
+            yield Static("[b]Session note[/]  [dim](enter saves · esc cancels)[/]")
+            yield Input(value=self._initial, placeholder="what happened / what you learned…")
+
+    def on_mount(self) -> None:
+        self.query_one(Input).focus()
+
+    def on_input_submitted(self, event: Input.Submitted) -> None:
+        self.dismiss((event.value or "").strip())
+
+    def action_cancel(self) -> None:
+        self.dismiss(None)
 
 
 class SessionEndScreen(ModalScreen[dict]):
@@ -43,6 +81,7 @@ class SessionEndScreen(ModalScreen[dict]):
         Binding("enter", "default", "Continue"),
         Binding("e", "extend_menu", "Extend"),
         Binding("l", "lunch", "Lunch"),
+        Binding("n", "add_note", "Add note"),
         Binding("5", "extend(5)", "+5", show=False),
         Binding("0", "extend(10)", "+10", show=False),
         Binding("plus", "extend(15)", "+15", show=False),
@@ -63,6 +102,7 @@ class SessionEndScreen(ModalScreen[dict]):
         self.suggest_lunch = suggest_lunch
         self.lunch_minutes = lunch_minutes
         self.multi_tasks = multi_tasks
+        self._stashed_notes: str = ""
 
     def compose(self) -> ComposeResult:
         is_multi = self.completed_phase == Phase.FOCUS and self.multi_tasks
@@ -104,19 +144,44 @@ class SessionEndScreen(ModalScreen[dict]):
             )
         if self.suggest_lunch:
             body += f"\n  [b]l[/]  Take lunch ({self.lunch_minutes}m)"
+        if self.completed_phase == Phase.FOCUS:
+            body += "\n  [b]n[/]  Add a note (optional)"
         with Center(), Vertical():
             yield Static(title, classes="title")
             yield Static(body, classes="body")
+            yield Static("", id="notes-preview", classes="hint")
             yield Static("[dim]esc closes — phase will stay paused[/]", classes="hint")
 
-    def action_complete(self) -> None:
-        if self.completed_phase == Phase.FOCUS and self.multi_tasks:
-            self.dismiss({"action": "complete_multi"})
+    def _notes(self) -> str:
+        return self._stashed_notes.strip()
+
+    def action_add_note(self) -> None:
+        if self.completed_phase != Phase.FOCUS:
+            return
+        self.app.push_screen(_NoteModal(initial=self._stashed_notes), self._on_note_saved)
+
+    def _on_note_saved(self, value: str | None) -> None:
+        if value is None:
+            return
+        self._stashed_notes = value.strip()
+        try:
+            preview = self.query_one("#notes-preview", Static)
+        except Exception:
+            return
+        if self._stashed_notes:
+            preview.update(f"[dim]note:[/] {escape(self._stashed_notes)}")
         else:
-            self.dismiss({"action": "complete"})
+            preview.update("")
+
+    def action_complete(self) -> None:
+        notes = self._notes()
+        if self.completed_phase == Phase.FOCUS and self.multi_tasks:
+            self.dismiss({"action": "complete_multi", "notes": notes})
+        else:
+            self.dismiss({"action": "complete", "notes": notes})
 
     def action_keep(self) -> None:
-        self.dismiss({"action": "keep"})
+        self.dismiss({"action": "keep", "notes": self._notes()})
 
     def action_default(self) -> None:
         if self.completed_phase == Phase.FOCUS and self.task_title:
