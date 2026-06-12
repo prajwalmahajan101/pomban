@@ -47,6 +47,7 @@ class PomodoroApp(App):
         Binding("P,shift+p", "pick_project", "Project", show=False),
         Binding("L,shift+l", "lunch_break", "Lunch", show=False),
         Binding("F,shift+f", "pick_sprint", "Sprint", show=False),
+        Binding("R,shift+r", "open_sprint_runner", "Sprint runner", show=False),
         Binding("T,shift+t", "toggle_auto_advance", "Auto-advance", show=False),
     ]
 
@@ -89,6 +90,8 @@ class PomodoroApp(App):
         # PombanEngine facade owns the active-task set, wraps the timer / sessions
         # / coord, and exposes a UI-agnostic surface the app shell drives. Active
         # tasks live on the facade; app.py reads them via the shim properties below.
+        # Filters persisted in config_kv: ui.active_project / ui.active_sprint
+        self.filters = FilterState(self.db)
         self._facade = PombanEngine(
             db=self.db,
             sessions=self.sessions,
@@ -97,9 +100,8 @@ class PomodoroApp(App):
             plugin_registry=plugin_registry,
             hooks=self.config.hooks,
             run_hook=run_hook,
+            filters=self.filters,
         )
-        # Filters persisted in config_kv: ui.active_project / ui.active_sprint
-        self.filters = FilterState(self.db)
         try:
             self._theme_idx = THEMES.index(self.config.ui.theme)
         except ValueError:
@@ -794,6 +796,16 @@ class PomodoroApp(App):
 
     def active_project_color(self) -> str:
         return self.filters.project_color()
+
+    def action_open_sprint_runner(self) -> None:
+        """Push :class:`SprintRunnerScreen` when an active sprint exists."""
+        if self._facade.active_sprint_progress() is None:
+            with contextlib.suppress(Exception):
+                self.notify("No active sprint. Pick one with Shift+F.", timeout=3)
+            return
+        from pomban.screens.sprint_runner import SprintRunnerScreen
+
+        self.push_screen(SprintRunnerScreen())
 
     def action_pick_sprint(self) -> None:
         from pomban.screens.sprint_picker import SprintPickerModal
