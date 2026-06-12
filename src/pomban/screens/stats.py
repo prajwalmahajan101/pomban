@@ -76,6 +76,13 @@ class StatsScreen(AppScreen):
                 yield Static("[b]Project drill-down[/]", classes="section-title")
                 yield Static(id="project-drill")
             with Vertical(classes="section"):
+                yield Static(
+                    "[b]By tag (last 30 days)[/]",
+                    id="by-tag-title",
+                    classes="section-title",
+                )
+                yield BarChart(id="by-tag")
+            with Vertical(classes="section"):
                 yield Static("[b]Sprint burndown[/]", classes="section-title")
                 yield Sparkline(id="burndown-spark")
                 yield Static(id="burndown-detail")
@@ -189,6 +196,8 @@ class StatsScreen(AppScreen):
             self.query_one("#project-drill", Static).update(
                 "[dim]filter to a project (press P) to see drill-down stats[/]"
             )
+        # By-tag
+        self._refresh_by_tag(db, active_pid)
         # Burndown
         sprint_id = self.app.active_sprint_id
         if sprint_id is not None:
@@ -239,3 +248,11 @@ class StatsScreen(AppScreen):
             f"  Avg interruptions / focus session: {avg:.1f}"
         )
         self.query_one("#summary", Static).update(summary)
+
+    def _refresh_by_tag(self, db, active_pid: int | None) -> None:
+        rows = db.minutes_per_tag(since_days=30, project_id=active_pid)
+        bar = self.query_one("#by-tag", BarChart)
+        if not rows:
+            bar.update("[dim]No tagged focus sessions in the last 30 days.[/]")
+            return
+        bar.set_data([(tag, minutes) for tag, minutes in rows], width=30, value_suffix="m")
