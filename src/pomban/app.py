@@ -163,8 +163,11 @@ class PomodoroApp(App):
         self.install_screen(KanbanScreen(), name="kanban")
         self.install_screen(StatsScreen(), name="stats")
         self.install_screen(HistoryScreen(), name="history")
+        from pomban.screens.today import TodayScreen
+
         self.install_screen(ProjectsScreen(), name="projects")
         self.install_screen(SprintsScreen(), name="sprints")
+        self.install_screen(TodayScreen(), name="today")
         self.push_screen("dashboard")
         plugin_registry().discover()
         self._maybe_prompt_resume()
@@ -492,7 +495,7 @@ class PomodoroApp(App):
 
     # ---------- global actions ----------
     def action_switch(self, name: str) -> None:
-        valid = ["dashboard", "kanban", "stats", "history", "projects", "sprints"]
+        valid = ["dashboard", "kanban", "stats", "history", "projects", "sprints", "today"]
         if name in valid:
             try:
                 self.switch_screen(name)

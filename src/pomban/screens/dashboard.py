@@ -80,6 +80,7 @@ class DashboardScreen(AppScreen):
         Binding("4", "app.switch('history')", "History", show=False),
         Binding("5", "app.switch('projects')", "Projects", show=False),
         Binding("6", "app.switch('sprints')", "Sprints", show=False),
+        Binding("7", "app.switch('today')", "Today", show=False),
         Binding("question_mark", "app.help", "Help"),
         Binding("t", "app.cycle_theme", "Theme"),
         Binding("q", "app.quit", "Quit"),
@@ -93,9 +94,7 @@ class DashboardScreen(AppScreen):
                 yield Static(panel_title("Timer", "i"), classes="pane-title")
                 yield TimerDisplay(id="timer")
             with Vertical(id="task-pane"):
-                yield Static(
-                    panel_title("Tasks", "a"), id="task-pane-title", classes="pane-title"
-                )
+                yield Static(panel_title("Tasks", "a"), id="task-pane-title", classes="pane-title")
                 yield ListView(id="task-list")
                 yield Input(placeholder="Add a task — use #tag inline", id="task-input")
         yield Footer()
