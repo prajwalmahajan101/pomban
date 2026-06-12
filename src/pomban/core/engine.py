@@ -186,7 +186,6 @@ class PombanEngine:
                     "plugin dispatch failed (phase=%s starting=%s)", phase.value, starting
                 )
 
-
     # ---------- session lifecycle ----------
     def log_new_session(self) -> None:
         """Open a DB session row for the timer's current phase and fire start hooks.
@@ -197,9 +196,7 @@ class PombanEngine:
         if self.timer.phase == Phase.IDLE:
             return
         self.fire_phase_hooks(starting=True, phase=self.timer.phase)
-        task_ids = (
-            [t.id for t in self.active_tasks] if self.timer.phase == Phase.FOCUS else []
-        )
+        task_ids = [t.id for t in self.active_tasks] if self.timer.phase == Phase.FOCUS else []
         self.coord.begin(task_ids)
 
     def start_focus_on_many(self, tasks: list[Task]) -> bool:
@@ -221,9 +218,20 @@ class PombanEngine:
         self.log_new_session()
         return True
 
-    def finalize_multi_complete(
-        self, sid: int | None, actual: int, ids: list[int] | None
-    ) -> None:
+    # ---------- first-run detection (M3) ----------
+    def is_first_run(self) -> bool:
+        """True when the library has no user-created projects yet.
+
+        The app shell uses this on mount to decide whether to push the
+        FirstRunModal before the dashboard becomes interactive.
+        """
+        try:
+            return not self.db.list_projects()
+        except Exception:
+            log.exception("is_first_run: list_projects failed")
+            return False
+
+    def finalize_multi_complete(self, sid: int | None, actual: int, ids: list[int] | None) -> None:
         """Close a multi-task focus session and mark the indicated tasks done."""
         ids = ids or []
         if sid is not None:

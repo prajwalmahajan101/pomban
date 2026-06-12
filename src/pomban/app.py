@@ -58,10 +58,15 @@ class PomodoroApp(App):
         notify_cfg: NotifyConfig | None = None,
         config: Config | None = None,
         config_path=None,
+        first_run_check: bool | None = None,
     ) -> None:
         super().__init__()
         self.config = config or cfg_module.load(config_path)
         self.config_path = config_path
+        # Default: only check on real launches. Tests pass ``fast=True`` for
+        # quick timer settings on empty DBs, so suppress the modal there
+        # unless the test explicitly opts in.
+        self._first_run_check = (not fast) if first_run_check is None else first_run_check
         self.db = db or DB()
         self.sessions = SessionService(self.db)
         if settings is None:
@@ -160,6 +165,7 @@ class PomodoroApp(App):
         self.push_screen("dashboard")
         plugin_registry().discover()
         self._maybe_prompt_resume()
+        self._maybe_prompt_first_run()
         self.set_interval(0.25, self._tick)
         with contextlib.suppress(Exception):
             self.theme = THEMES[self._theme_idx]
@@ -590,6 +596,28 @@ class PomodoroApp(App):
         except Exception:
             log.exception("failed to snapshot bindings for help")
         self.push_screen(HelpScreen(snapshot))
+
+    def _maybe_prompt_first_run(self) -> None:
+        """Empty-DB launch: push FirstRunModal to seed an initial project."""
+        if not self._first_run_check:
+            return
+        if not self._facade.is_first_run():
+            return
+        from pomban.screens.first_run import FirstRunModal
+
+        self.push_screen(FirstRunModal(), self._on_first_run_result)
+
+    def _on_first_run_result(self, name: str | None) -> None:
+        if not name:
+            return
+        try:
+            project = self.db.get_or_create_project(name)
+        except Exception:
+            log.exception("first-run project creation failed for %r", name)
+            return
+        self.set_active_project(project.id)
+        with contextlib.suppress(Exception):
+            self.notify(f"Project '{project.name}' created", timeout=3)
 
     def _maybe_prompt_resume(self) -> None:
         pending = self.db.kv_get("pending_session_id")
