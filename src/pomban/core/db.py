@@ -243,9 +243,7 @@ class DB:
             version = 9
         if version < 10:
             # Free-form notes captured at end-of-session for the session-end UI.
-            self.conn.execute(
-                "ALTER TABLE sessions ADD COLUMN notes TEXT NOT NULL DEFAULT ''"
-            )
+            self.conn.execute("ALTER TABLE sessions ADD COLUMN notes TEXT NOT NULL DEFAULT ''")
             self.conn.execute("PRAGMA user_version = 10")
             self.conn.commit()
             version = 10
@@ -505,6 +503,16 @@ class DB:
             (session_id,),
         )
         self.conn.commit()
+
+    def count_today_interruptions(self) -> int:
+        """Total blockers logged on today's focus sessions (any completion state)."""
+        today = date.today().isoformat()
+        row = self.conn.execute(
+            "SELECT COALESCE(SUM(interruption_count), 0) AS n FROM sessions"
+            " WHERE kind='focus' AND substr(started_at,1,10)=?",
+            (today,),
+        ).fetchone()
+        return int(row["n"] or 0)
 
     # ---------- stats ----------
     def stats_today(self) -> dict:

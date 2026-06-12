@@ -49,6 +49,7 @@ class PomodoroApp(App):
         Binding("F,shift+f", "pick_sprint", "Sprint", show=False),
         Binding("R,shift+r", "open_sprint_runner", "Sprint runner", show=False),
         Binding("T,shift+t", "toggle_auto_advance", "Auto-advance", show=False),
+        Binding("b", "log_blocker", "Blocker", show=False),
     ]
 
     def __init__(
@@ -844,6 +845,29 @@ class PomodoroApp(App):
         self.set_active_sprint(None)
         with contextlib.suppress(Exception):
             self.notify("Sprint closed.", timeout=2)
+
+    def action_log_blocker(self) -> None:
+        """Push BlockerModal mid-focus to log an interruption on the active session."""
+        sid = self.current_session_id
+        if self.engine.phase != Phase.FOCUS or sid is None:
+            with contextlib.suppress(Exception):
+                self.notify("No focus session active.", timeout=2)
+            return
+        from pomban.screens.blocker import BlockerModal
+
+        self.push_screen(BlockerModal(), lambda reason: self._on_blocker_result(sid, reason))
+
+    def _on_blocker_result(self, session_id: int, reason: str | None) -> None:
+        if reason is None:
+            return
+        try:
+            self.sessions.log_interruption(session_id, reason=reason)
+        except Exception:
+            log.exception("log_interruption failed for session %s", session_id)
+            return
+        self._refresh_all()
+        with contextlib.suppress(Exception):
+            self.notify(f"⚠ Blocker logged{(': ' + reason) if reason else ''}", timeout=2)
 
     def action_open_sprint_runner(self) -> None:
         """Push :class:`SprintRunnerScreen` when an active sprint exists."""
