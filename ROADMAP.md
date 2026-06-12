@@ -16,8 +16,9 @@ later phases assume the earlier ones landed.
 | Phase 2 — Boards + Filters | [`v0.1.0`](https://github.com/prajwalmahajan101/pomban/releases/tag/v0.1.0) | shipped |
 | Phase 3 — Cleanup + Closures | (unreleased; lands on `main`) | merged |
 | Phase 4 — PM reframing + release | [`v0.2.0`](https://github.com/prajwalmahajan101/pomban/releases/tag/v0.2.0) | shipped |
-| Phase 5 — Notifications + Sound polish | `v0.3.0` (planned) | planned |
-| Phase 6 — Sync hardening | `v0.4.0` (planned) | planned |
+| Phase 4.6 — Onboarding + planning UX polish | [`v0.3.0`](https://github.com/prajwalmahajan101/pomban/releases/tag/v0.3.0) | shipped |
+| Phase 5 — Notifications + Sound polish | `v0.4.0` (planned) | planned |
+| Phase 6 — Sync hardening | `v0.5.0` (planned) | planned |
 | Phase 7 — Plugin surface | `v1.0.0` (planned) | planned |
 
 Phases 1 and 2 shipped as a single `v0.1.0` cut because the project
@@ -100,7 +101,27 @@ for the commit-by-commit breakdown).
 - `pre-commit run --all-files` and `pytest -q` clean on every
   milestone-tip commit.
 
-## Phase 5 — Notifications + Sound polish `(planned — targets v0.3.0)`
+## Phase 4.6 — Onboarding + planning UX polish `(shipped 2026-06-12 as v0.3.0)`
+
+**Goal.** Smooth over the rough edges first-time users hit on v0.2.0
+without holding the rest of the roadmap back. Inserted between
+Phase 4 and Phase 5 because two of the items (sprint modal,
+WelcomeModal) materially change the planning surface and shouldn't
+travel inside the same release as the notification polish.
+
+**Deliverables.** ✓ shipped.
+
+- Per-screen [b]HELP_INTRO[/]: every `AppScreen` ships a short
+  explainer rendered above the keymap on the `?` overlay, plus a
+  context-aware title (`pomban — Kanban` etc.).
+- Structured `SprintCreateModal` (name, pomodoro target, duration,
+  goal). Replaces the one-line `name [target]` input and the
+  implicit 14-day shell sprint that the Projects screen used to
+  create on `s`.
+- `WelcomeModal` on first launch + rotating `StartupTipModal` on
+  subsequent launches, both gated by `[ui].show_startup_tips`.
+
+## Phase 5 — Notifications + Sound polish `(planned — targets v0.4.0)`
 
 **Goal.** Make pomban feel as native as a desktop timer.
 
@@ -121,7 +142,7 @@ for the commit-by-commit breakdown).
 - `pomban` launches a focus session on macOS / Linux / Windows
   Terminal and fires both desktop + sound + in-TUI notifications.
 
-## Phase 6 — Sync hardening `(planned — targets v0.4.0)`
+## Phase 6 — Sync hardening `(planned — targets v0.5.0)`
 
 **Goal.** Make the `git_sync` plugin a reliable cross-device sync
 story.
