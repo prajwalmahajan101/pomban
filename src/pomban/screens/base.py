@@ -45,6 +45,15 @@ class AppScreen(Screen):
         """
         self._refresh_context_header()
 
+    HELP_INTRO: str | None = None
+    """Optional short explainer rendered above the keymap on the help overlay (`?`).
+
+    Override per screen to describe how that screen *works* (mental model,
+    columns, modes), distinct from the per-key list which the overlay derives
+    automatically from BINDINGS. Use single-line Rich-markup strings; the
+    overlay handles line wrapping and the visual divider.
+    """
+
     def refresh_timer(self) -> None:
         """Re-render only the timer-dependent parts of this screen.
 

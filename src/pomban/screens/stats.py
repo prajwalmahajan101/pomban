@@ -21,6 +21,18 @@ _DOW = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"]
 
 
 class StatsScreen(AppScreen):
+    HELP_INTRO = (
+        "[b]How stats works[/]\n"
+        "Aggregates completed focus sessions for the active project/sprint\n"
+        "filter into [b]daily[/], [b]weekly[/], and [b]monthly[/] buckets, plus\n"
+        "top tasks and a per-tag analytics panel.\n"
+        "\n"
+        "Cycle bucket with the bucket toggle keys (see keymap). Numbers are\n"
+        "[b]actual[/] (completed) pomodoros, not planned. The per-tag panel\n"
+        "uses [b]minutes_per_tag[/] so a tag is counted once per session even\n"
+        "if it appears on multiple tasks."
+    )
+
     CSS = """
     StatsScreen { layout: vertical; }
     .section { padding: 1 2; }

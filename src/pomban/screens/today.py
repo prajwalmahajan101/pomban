@@ -27,6 +27,20 @@ def _fmt_minutes(seconds: int) -> str:
 
 
 class TodayScreen(AppScreen):
+    HELP_INTRO = (
+        "[b]How Today works[/]\n"
+        "One-pane daily digest. Pulls only sessions from [b]today[/] in the\n"
+        "active project / sprint filter:\n"
+        "\n"
+        "  • Total focus sessions + minutes\n"
+        "  • Top tasks worked on (with planned vs actual)\n"
+        "  • Interruption / blocker count and titles\n"
+        "  • Current sprint progress vs target\n"
+        "\n"
+        "Bound to [b]7[/] so the digit row reads as a planning ladder —\n"
+        "[b]1[/] Dashboard → [b]7[/] Today."
+    )
+
     CSS = """
     TodayScreen { layout: vertical; }
     TodayScreen #today-scroll { padding: 0 2; }
