@@ -143,8 +143,11 @@ class KanbanScreen(AppScreen):
         yield Footer()
 
     def on_mount(self) -> None:
+        # Keep the docked Input out of the initial focus chain so j/k/h/l reach
+        # the screen bindings instead of being typed into it. It's switched
+        # focusable on demand by action_new_card / action_search / action_bulk_tag.
+        self.query_one("#kanban-input", Input).can_focus = False
         self.refresh_board()
-        self.query_one("#kanban-input", Input).can_focus = True
 
     def refresh_view(self) -> None:
         super().refresh_view()
@@ -182,7 +185,9 @@ class KanbanScreen(AppScreen):
             self._update_column_title(status, shown=len(tasks), total=total)
         self._update_framing(sprint_id)
         self._clamp_cursor()
-        self._paint_cursor()
+        # `body.mount(...)` is async — paint after the next refresh so the new
+        # TaskCards are in the DOM and `focused_card()` can find them.
+        self.call_after_refresh(self._paint_cursor)
 
     def _update_framing(self, sprint_id: int | None) -> None:
         proj_label = self.app.active_project_label()
@@ -398,7 +403,9 @@ class KanbanScreen(AppScreen):
         self.refresh_board()
 
     def action_new_card(self) -> None:
-        self.query_one("#kanban-input", Input).focus()
+        inp = self.query_one("#kanban-input", Input)
+        inp.can_focus = True
+        inp.focus()
 
     def action_delete_card(self) -> None:
         if self.visual_mode and self.selected_ids:
@@ -523,6 +530,7 @@ class KanbanScreen(AppScreen):
         self._input_mode = "search"
         inp.placeholder = "Filter: text or #tag — Enter to apply, Esc to clear"
         inp.value = self.search_query
+        inp.can_focus = True
         inp.focus()
 
     def action_clear_search(self) -> None:
@@ -534,6 +542,7 @@ class KanbanScreen(AppScreen):
         inp = self.query_one("#kanban-input", Input)
         inp.value = ""
         inp.placeholder = _ADD_PLACEHOLDER
+        inp.can_focus = False
         self.refresh_board()
         self.set_focus(None)
 
@@ -545,6 +554,7 @@ class KanbanScreen(AppScreen):
         self._input_mode = "bulk_tag"
         inp.placeholder = f"Tag to add to {len(self.selected_ids)} selected — Enter to apply"
         inp.value = ""
+        inp.can_focus = True
         inp.focus()
 
     def _add_tag_to_task(self, task: Task, tag: str) -> None:
@@ -560,6 +570,7 @@ class KanbanScreen(AppScreen):
         mode = self._input_mode
         self._input_mode = None
         event.input.value = ""
+        event.input.can_focus = False
         if mode == "search":
             self.search_query = value
             event.input.placeholder = _ADD_PLACEHOLDER
