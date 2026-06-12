@@ -6,8 +6,10 @@ After [installing](install.md):
 pomban
 ```
 
-You'll land on the Dashboard with an empty task list. Press `?` at
-any time for a context-aware help overlay.
+On an empty library, the **first-run modal** opens and walks you
+through creating your first project — pomban's planning hierarchy
+(project → sprint → task) is never empty after the first launch.
+Press `?` at any time for a context-aware help overlay.
 
 ## First five minutes
 
@@ -16,10 +18,16 @@ any time for a context-aware help overlay.
 2. **Start a focus session.** Select the task with `j`/`k`, press
    Enter (or `s` to start without picking one).
 3. **Pause if you need to.** `s` again toggles pause / resume.
-4. **End early.** `r` resets (counts as incomplete); `Shift+S`
-   skips to the next phase (counts as completed).
-5. **Switch screens.** `2` for the kanban board, `3` for stats,
-   `4` for history.
+4. **Log a blocker mid-session.** `b` captures a one-liner against
+   the active focus session — the timer keeps running.
+5. **End early.** `r` resets (counts as incomplete); `Shift+S`
+   skips to the next phase (counts as completed). On end you'll
+   get a session-end modal where you can leave a free-text note.
+6. **Review.** `7` opens the **Today** digest; `3` for stats
+   (including the per-tag analytics panel); `4` for history with
+   notes inline.
+7. **Run a sprint.** `Shift+R` opens the sprint runner overlay —
+   the current sprint goal pinned regardless of screen.
 
 That's the whole loop. Everything below is sugar.
 
@@ -45,6 +53,9 @@ then manual order.
 |---|---|
 | `Shift+L` / `L` | Start a lunch break (long pause) immediately |
 | `Shift+T` / `T` | Toggle auto-advance (skip end-of-phase modal) |
+| `Shift+R` | Sprint runner overlay (current sprint, pinned) |
+| `b` | Log a blocker against the active focus session |
+| `7` | Open the Today digest |
 | `p` | Open the preset picker (modal) |
 | `Shift+P` / `P` | Project filter picker |
 | `Shift+F` / `F` | Sprint filter picker |

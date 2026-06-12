@@ -357,6 +357,34 @@ When a phase ends, up to three channels fire (each independently togglable in co
 
 Configurable under `[notifications]` (see `configuration.md`).
 
+### Working-hours quiet
+
+Set `working_hours_start` and `working_hours_end` under `[breaks]` to define your active window. Outside it, the desktop and sound channels suppress automatically; the in-TUI bell still fires so you don't miss a phase change. The context header surfaces a **quiet** chip while suppression is active.
+
+---
+
+## Blocker capture
+
+Hit `b` during a focus session to drop a one-line blocker against the live session. The timer keeps running. Blockers show up on the **Today** digest and per-session in **History**.
+
+---
+
+## Session notes
+
+When a focus phase ends, the session-end modal includes a free-text note field. The note attaches to the session row and renders inline on the **History** screen — useful for "what did I actually do in those 25 minutes" recaps.
+
+---
+
+## Today digest
+
+Press `7` to open the **Today** screen — a single-pane recap of the current day: total focus sessions, top tasks, interruption count, blocker list. Bound to the `7` key so the digit row matches the planning ladder (`1` dashboard → `7` today).
+
+---
+
+## Per-tag analytics
+
+The **Stats** screen (`3`) ships a per-tag analytics panel powered by `minutes_per_tag`. It lets you see where time actually went — `#deep-work` vs `#meetings` vs `#admin` — over the current bucket window.
+
 ---
 
 ## Hooks
@@ -409,13 +437,19 @@ Caveat: only the *focus* phase is currently persisted. If you quit during a brea
 
 ---
 
-## Markdown export
+## Exports
 
 ```bash
-pomban export                    # last 7 days
-pomban export --since 30d        # last 30 days
-pomban export --since 14d > review-this-fortnight.md
+pomban export                                  # last 7 days, markdown
+pomban export --since 30d                      # last 30 days
+pomban export --since 14d > review.md
+pomban export --since 7d --format csv          # raw CSV
+pomban export --since 7d --format json         # JSON for downstream tooling
+pomban export --since 30d --format markdown    # grouped by project/sprint
+pomban sprint export <sprint-id>               # per-sprint report
 ```
+
+The grouped-markdown format buckets sessions by project → sprint → task so a weekly review reads like a digest. CSV and JSON give you the raw session rows.
 
 Produces a Markdown document:
 

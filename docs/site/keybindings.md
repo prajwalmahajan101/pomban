@@ -14,7 +14,7 @@ keys change depending on which panel is active.
 |---|---|
 | `Tab` / `Shift+Tab` | Cycle focus between panels (Dashboard panes; Kanban columns) |
 | highlighted letter | Each panel title shows one highlighted letter — press it to focus that panel (btop-style). Dashboard: **T·i·mer** = `i`, **T·a·sks** = `a` |
-| `1`–`6` | Jump directly to a section (Dashboard / Kanban / Stats / History / Projects / Sprints) |
+| `1`–`7` | Jump directly to a section (Dashboard / Kanban / Stats / History / Projects / Sprints / Today) |
 
 ## Global (works everywhere)
 
@@ -34,6 +34,9 @@ keys change depending on which panel is active.
 | `4` | Switch to **History** |
 | `5` | Switch to **Projects** management screen |
 | `6` | Switch to **Sprints** management screen |
+| `7` | Switch to **Today** digest |
+| `Shift+R` | Open the **sprint runner** overlay (current sprint, pinned) |
+| `b` | Log a **blocker** against the current focus session |
 
 ## Dashboard
 
