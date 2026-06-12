@@ -35,6 +35,7 @@ class ProjectsScreen(AppScreen):
         Binding("r", "rename", "Rename", show=True),
         Binding("c", "recolor", "Color", show=True),
         Binding("a", "archive", "Archive", show=True),
+        Binding("s", "new_sprint", "New sprint", show=True),
         Binding("d,x", "delete", "Delete", show=True),
         Binding("enter", "filter_by", "Filter & open kanban"),
         Binding("escape", "blur_input", "", show=False),
@@ -57,7 +58,7 @@ class ProjectsScreen(AppScreen):
     def compose(self) -> ComposeResult:
         yield from self.compose_header()
         yield Static(
-            "[b]Projects[/]  [dim]n=new  r=rename  c=recolor  a=archive  d=delete  enter=filter[/]",
+            "[b]Projects[/]  [dim]n=new  r=rename  c=recolor  a=archive  s=sprint  d=delete  enter=filter[/]",
             id="proj-help",
         )
         yield DataTable(id="proj-table", cursor_type="row")
@@ -151,6 +152,26 @@ class ProjectsScreen(AppScreen):
         self.refresh_projects()
         with contextlib.suppress(Exception):
             self.notify(f"{p.name} → {new_color}", timeout=2)
+
+    def action_new_sprint(self) -> None:
+        """Create + activate a 14-day sprint scoped to the focused project."""
+        pid = self._selected_project_id()
+        if pid is None:
+            with contextlib.suppress(Exception):
+                self.notify("Pick a project row first.", timeout=2)
+            return
+        try:
+            sprint = self.app._facade.create_sprint_for_project(pid)
+        except Exception:
+            with contextlib.suppress(Exception):
+                self.notify("Could not create sprint.", timeout=3, severity="error")
+            return
+        # Activation must also update the FilterState + refresh other screens.
+        self.app.set_active_project(pid)
+        self.app.set_active_sprint(sprint.id)
+        self.refresh_view()
+        with contextlib.suppress(Exception):
+            self.notify(f"Sprint '{sprint.name}' active.", timeout=3)
 
     def action_archive(self) -> None:
         pid = self._selected_project_id()
