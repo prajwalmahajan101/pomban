@@ -36,11 +36,12 @@ class ContextHeader(Static):
         proj_label = app.active_project_label() or "All"
         proj_color = app.active_project_color() or "white"
         proj_segment = f"Project: [reverse {proj_color}] {escape(proj_label)} [/]"
+        warn_segment = self._warn_segment(app)
 
         sprint_id = app.active_sprint_id
         if sprint_id is None:
             hint = "(⇧P / ⇧F)" if proj_label == "All" else "(⇧F to pick)"
-            self.update(f"{proj_segment}  ·  Sprint: —   {hint}")
+            self.update(f"{proj_segment}  ·  Sprint: —   {hint}{warn_segment}")
             return
 
         try:
@@ -48,7 +49,7 @@ class ContextHeader(Static):
             prog = app.db.sprint_progress(sprint_id)
         except Exception:
             # Stale active_sprint_id — the underlying row may have been deleted.
-            self.update(f"{proj_segment}  ·  Sprint: —   (⇧F to pick)")
+            self.update(f"{proj_segment}  ·  Sprint: —   (⇧F to pick){warn_segment}")
             return
 
         name = escape(sp.name)
@@ -59,11 +60,21 @@ class ContextHeader(Static):
         if target <= 0:
             self.update(
                 f"{proj_segment}  ·  Sprint: [b]{name}[/]  no target set   "
-                f"{days_str}   (⇧F)"
+                f"{days_str}   (⇧F){warn_segment}"
             )
             return
         bar = _bar(prog["pct"])
         self.update(
             f"{proj_segment}  ·  Sprint: [b]{name}[/]  {completed}/{target} "
-            f"{bar}  {days_str}   (⇧P / ⇧F)"
+            f"{bar}  {days_str}   (⇧P / ⇧F){warn_segment}"
         )
+
+    @staticmethod
+    def _warn_segment(app) -> str:
+        try:
+            n = app.db.count_today_interruptions()
+        except Exception:
+            return ""
+        if n <= 0:
+            return ""
+        return f"  ·  [yellow]⚠ {n} today[/]"
