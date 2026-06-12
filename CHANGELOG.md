@@ -7,6 +7,41 @@ the project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html
 
 ## [Unreleased]
 
+## [0.3.0] — 2026-06-12
+
+Minor release. Onboarding + planning UX polish: the help overlay now
+explains how each screen works, sprint creation gets a real modal, and
+new users get a one-shot walkthrough on first launch plus a rotating
+tip overlay on subsequent launches.
+
+### Added
+- **Context-aware `?` help.** Every `AppScreen` may declare a
+  `HELP_INTRO` string explaining the screen's mental model
+  (columns, modes, the gist of how to use it). The help overlay
+  renders that intro above a "Keymap" heading and the per-screen
+  bindings list; the title changes to `pomban — <Screen>` so it's
+  clear which surface you're reading help for. Dashboard, Kanban,
+  Stats, History, Today, Projects, and Sprints all ship intros.
+- **`SprintCreateModal`** — structured 4-field sprint creation
+  (name, pomodoro target, duration days, goal). Replaces the
+  inline-input parsing on the Sprints screen and the implicit
+  14-day shell that the Projects screen's `s` binding used to
+  create. `Ctrl+S` or `Enter` on any field submits; `Esc` cancels.
+  The engine helper `PombanEngine.create_sprint_for_project`
+  gains `pomodoro_target` and `goal` kwargs to match.
+- **First-launch `WelcomeModal`** + **rotating `StartupTipModal`.**
+  On the first launch after the DB has at least one project, a
+  full-page walkthrough modal explains the platform model and the
+  main keymap. On every subsequent launch a short tip overlay
+  rotates through 12 tips. Both gated by the new
+  `[ui].show_startup_tips` config flag (default `true`); set it to
+  `false` to disable both surfaces.
+
+### Changed
+- The `s` binding on the Projects screen now opens the new
+  `SprintCreateModal` instead of synchronously creating a 14-day
+  shell sprint. The `n` binding on the Sprints screen does the same.
+
 ## [0.2.1] — 2026-06-12
 
 Patch release. Two interaction bugs that made v0.2.0 hard to use on a
@@ -198,7 +233,8 @@ Tracked in [`.code_review/code_review_issues.md`](https://github.com/prajwalmaha
   all landed. Music removal trimmed the remaining UI-action surface.
 - **ISSUE-012 — swallowed excepts** (resolved): see _Fixed_ above.
 
-[Unreleased]: https://github.com/prajwalmahajan101/pomban/compare/v0.2.1...HEAD
+[Unreleased]: https://github.com/prajwalmahajan101/pomban/compare/v0.3.0...HEAD
+[0.3.0]: https://github.com/prajwalmahajan101/pomban/compare/v0.2.1...v0.3.0
 [0.2.1]: https://github.com/prajwalmahajan101/pomban/compare/v0.2.0...v0.2.1
 [0.2.0]: https://github.com/prajwalmahajan101/pomban/compare/v0.1.0...v0.2.0
 [0.1.0]: https://github.com/prajwalmahajan101/pomban/releases/tag/v0.1.0
