@@ -125,6 +125,4 @@ async def test_kanban_n_focuses_input_for_add_card():
             await pilot.press("n")
             await pilot.pause()
             inp = kb.query_one("#kanban-input")
-            assert app.focused is inp, (
-                "After pressing `n`, the kanban input should hold focus"
-            )
+            assert app.focused is inp, "After pressing `n`, the kanban input should hold focus"
