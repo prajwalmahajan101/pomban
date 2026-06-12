@@ -21,7 +21,6 @@ import pytest
 
 from pomban.app import PomodoroApp
 from pomban.core.db import DB
-from pomban.core.models import Project
 from pomban.screens.dashboard import DashboardScreen
 from pomban.screens.project_picker import ProjectPickerModal
 
