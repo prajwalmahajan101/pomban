@@ -7,6 +7,28 @@ the project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html
 
 ## [Unreleased]
 
+## [0.2.1] — 2026-06-12
+
+Patch release. Two interaction bugs that made v0.2.0 hard to use on a
+fresh DB. v0.2.0 has been yanked from PyPI in favour of this release.
+
+### Fixed
+- **Project picker swallowed Enter.** Submitting a task with no
+  `@project` opened the project picker modal, but pressing Enter
+  dismissed it with `None` instead of selecting the highlighted row
+  — the task was silently lost. The modal now listens for
+  `ListView.Selected` (which is what Textual's `ListView` actually
+  emits on Enter), focuses the list on mount, and seeds the
+  highlighted index at 0 so the first keystroke isn't wasted.
+- **Kanban task selection didn't work and the focused card never
+  highlighted.** The docked Input grabbed initial focus so
+  `j` / `k` / `h` / `l` were typed into it instead of moving the
+  cursor; and `_paint_cursor()` ran before `body.mount(TaskCard...)`
+  had landed in the DOM so even after focus was fixed the first
+  paint missed every card. The Input now stays out of the focus
+  chain until you press `n` / `/` / `g`, and the cursor paints via
+  `call_after_refresh` so the newly-mounted cards are visible to it.
+
 ## [0.2.0] — 2026-06-12
 
 The "personal productivity platform" release. Tasks now live inside
@@ -176,6 +198,7 @@ Tracked in [`.code_review/code_review_issues.md`](https://github.com/prajwalmaha
   all landed. Music removal trimmed the remaining UI-action surface.
 - **ISSUE-012 — swallowed excepts** (resolved): see _Fixed_ above.
 
-[Unreleased]: https://github.com/prajwalmahajan101/pomban/compare/v0.2.0...HEAD
+[Unreleased]: https://github.com/prajwalmahajan101/pomban/compare/v0.2.1...HEAD
+[0.2.1]: https://github.com/prajwalmahajan101/pomban/compare/v0.2.0...v0.2.1
 [0.2.0]: https://github.com/prajwalmahajan101/pomban/compare/v0.1.0...v0.2.0
 [0.1.0]: https://github.com/prajwalmahajan101/pomban/releases/tag/v0.1.0
