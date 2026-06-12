@@ -53,9 +53,7 @@ async def test_picker_enter_selects_highlighted_row_not_cancel():
             await pilot.press("enter")
             await pilot.pause()
             await pilot.pause()
-            assert result == [-1], (
-                f"Enter on first row should pick All (-1), got {result}"
-            )
+            assert result == [-1], f"Enter on first row should pick All (-1), got {result}"
 
 
 @pytest.mark.asyncio
