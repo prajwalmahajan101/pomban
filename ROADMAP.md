@@ -57,7 +57,7 @@ it the *product*. Carries the original release-prep deliverables
 M1 / M5 below.
 
 **Deliverables** (five milestones — see
-[`.planning/v0.2.0-milestones.md`](.planning/v0.2.0-milestones.md)
+[`.planning/v0.2.0-milestones.md`](https://github.com/prajwalmahajan101/pomban/blob/main/.planning/v0.2.0-milestones.md)
 for the commit-by-commit breakdown).
 
 - **M1 — Foundations & release prep.** ✓ shipped. Schema v10
