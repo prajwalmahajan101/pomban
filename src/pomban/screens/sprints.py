@@ -11,6 +11,23 @@ from pomban.screens.base import AppScreen
 
 
 class SprintsScreen(AppScreen):
+    HELP_INTRO = (
+        "[b]How sprints work[/]\n"
+        "A sprint is a time-bound + pomodoro-bound chunk of work inside one\n"
+        "project. Each sprint has a [b]name[/], a [b]pomodoro target[/], a\n"
+        "[b]start/end date[/], and a freeform [b]goal[/]. One sprint per\n"
+        "project can be [b]active[/] at a time — that one is what the rest of\n"
+        "the app filters to and what [b]!sprint[/] resolves against.\n"
+        "\n"
+        "Create a sprint with the [b]new-sprint modal[/] (from this screen or\n"
+        "with [b]s[/] on Projects). Activate, complete, or delete the focused\n"
+        "sprint with the keys below. Completing a sprint records the retro\n"
+        "and closes it — tasks remain attached to the sprint for stats.\n"
+        "\n"
+        "Hitting the pomodoro target during focus pops the\n"
+        "[b]SprintCompleteScreen[/] modal automatically."
+    )
+
     CSS = """
     SprintsScreen { layout: vertical; }
     #sprint-input { dock: bottom; }
@@ -116,13 +133,29 @@ class SprintsScreen(AppScreen):
             return None
 
     def action_new_sprint(self) -> None:
-        self._mode = "new"
-        inp = self.query_one("#sprint-input", Input)
-        # Default to active project, else None
-        scope = "current project" if self.app.project_filter.is_project else "Inbox"
-        inp.placeholder = f"name [target_pomodoros] (default 14d, project={scope}) — Esc to cancel"
-        inp.value = ""
-        inp.focus()
+        """Open the SprintCreateModal scoped to the active project filter."""
+        from pomban.screens.sprint_create import SprintCreateModal, SprintCreateResult
+
+        scope_pid = self.app.project_filter.scoped_project_id
+        existing = self.app.db.list_sprints(project_id=scope_pid)
+        suggested = f"Sprint {len(existing) + 1}"
+
+        def _after(result: SprintCreateResult | None) -> None:
+            if result is None:
+                return
+            today = date.today().isoformat()
+            end = (date.today() + timedelta(days=result.duration_days)).isoformat()
+            self.app.db.add_sprint(
+                scope_pid,
+                result.name,
+                today,
+                end,
+                goal=result.goal,
+                pomodoro_target=result.pomodoro_target,
+            )
+            self.refresh_sprints()
+
+        self.app.push_screen(SprintCreateModal(suggested_name=suggested), _after)
 
     def action_activate(self) -> None:
         sid = self._selected_sprint_id()

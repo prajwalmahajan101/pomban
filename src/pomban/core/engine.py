@@ -263,13 +263,22 @@ class PombanEngine:
             return []
 
     def create_sprint_for_project(
-        self, project_id: int, name: str | None = None, days: int = 14
+        self,
+        project_id: int,
+        name: str | None = None,
+        days: int = 14,
+        pomodoro_target: int = 0,
+        goal: str = "",
     ) -> Sprint:
         """Create + activate a sprint scoped to the project.
 
         Auto-names ``"Sprint N"`` based on the project's existing sprint count
-        when ``name`` is None. Default duration 14 days; ``pomodoro_target``
-        starts at 0 and can be edited later. Activation deactivates any sibling.
+        when ``name`` is None. ``days`` controls the end_date offset from today.
+        ``pomodoro_target`` drives the SprintCompleteScreen trigger when crossed
+        during focus; 0 means no automatic completion modal. ``goal`` is a
+        freeform string surfaced on the sprint runner overlay.
+
+        Activation deactivates any sibling sprint on the same project.
         """
         if name is None:
             existing = self.db.list_sprints(project_id=project_id)
@@ -281,7 +290,8 @@ class PombanEngine:
             name,
             today.isoformat(),
             end.isoformat(),
-            goal="",
+            goal=goal,
+            pomodoro_target=pomodoro_target,
             status="planned",
         )
         self.db.activate_sprint(sp.id)

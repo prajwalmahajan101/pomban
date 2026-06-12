@@ -24,6 +24,25 @@ COLOR_CYCLE = [
 
 
 class ProjectsScreen(AppScreen):
+    HELP_INTRO = (
+        "[b]How projects work[/]\n"
+        "Top of pomban's planning hierarchy: every sprint and task belongs to\n"
+        "exactly one project. This screen lets you create, rename, recolor,\n"
+        "archive, and delete projects, and pick which one the rest of the app\n"
+        "scopes to.\n"
+        "\n"
+        "[b]n[/] creates a project. [b]r[/] renames the focused project,\n"
+        "[b]c[/] cycles its colour, [b]a[/] archives, [b]d[/]/[b]x[/] deletes.\n"
+        "\n"
+        "[b]Enter[/] sets the focused project as the active filter and jumps to\n"
+        "the kanban board for it.\n"
+        "\n"
+        "[b]s[/] opens the [b]new-sprint modal[/] (name, pomodoro target,\n"
+        "duration in days, goal) and activates the sprint on the focused\n"
+        "project — that sprint becomes the [b]!sprint[/] target for inline\n"
+        "task syntax everywhere."
+    )
+
     CSS = """
     ProjectsScreen { layout: vertical; }
     #proj-input { dock: bottom; }
@@ -155,24 +174,39 @@ class ProjectsScreen(AppScreen):
             self.notify(f"{p.name} → {new_color}", timeout=2)
 
     def action_new_sprint(self) -> None:
-        """Create + activate a 14-day sprint scoped to the focused project."""
+        """Open the SprintCreateModal scoped to the focused project."""
         pid = self._selected_project_id()
         if pid is None:
             with contextlib.suppress(Exception):
                 self.notify("Pick a project row first.", timeout=2)
             return
-        try:
-            sprint = self.app._facade.create_sprint_for_project(pid)
-        except Exception:
+        from pomban.screens.sprint_create import SprintCreateModal, SprintCreateResult
+
+        existing = self.app.db.list_sprints(project_id=pid)
+        suggested = f"Sprint {len(existing) + 1}"
+
+        def _after(result: SprintCreateResult | None) -> None:
+            if result is None:
+                return
+            try:
+                sprint = self.app._facade.create_sprint_for_project(
+                    pid,
+                    name=result.name,
+                    days=result.duration_days,
+                    pomodoro_target=result.pomodoro_target,
+                    goal=result.goal,
+                )
+            except Exception:
+                with contextlib.suppress(Exception):
+                    self.notify("Could not create sprint.", timeout=3, severity="error")
+                return
+            self.app.set_active_project(pid)
+            self.app.set_active_sprint(sprint.id)
+            self.refresh_view()
             with contextlib.suppress(Exception):
-                self.notify("Could not create sprint.", timeout=3, severity="error")
-            return
-        # Activation must also update the FilterState + refresh other screens.
-        self.app.set_active_project(pid)
-        self.app.set_active_sprint(sprint.id)
-        self.refresh_view()
-        with contextlib.suppress(Exception):
-            self.notify(f"Sprint '{sprint.name}' active.", timeout=3)
+                self.notify(f"Sprint '{sprint.name}' active.", timeout=3)
+
+        self.app.push_screen(SprintCreateModal(suggested_name=suggested), _after)
 
     def action_archive(self) -> None:
         pid = self._selected_project_id()

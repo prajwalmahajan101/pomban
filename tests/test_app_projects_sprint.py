@@ -1,8 +1,9 @@
-"""Pilot test for the M3 ``s`` binding on ProjectsScreen.
+"""Pilot test for the ``s`` binding on ProjectsScreen.
 
-Pressing ``s`` while a real project row is focused creates and activates
-a sprint scoped to it. Pressing ``s`` on the synthetic Inbox row is a
-no-op.
+Pressing ``s`` while a real project row is focused opens the
+SprintCreateModal scoped to that project. Submitting the modal (Ctrl+S)
+creates and activates a sprint with the chosen fields. Pressing ``s`` on
+the synthetic Inbox row is a no-op.
 """
 
 from __future__ import annotations
@@ -16,6 +17,7 @@ from pomban.app import PomodoroApp
 from pomban.core.db import DB
 from pomban.screens.dashboard import DashboardScreen
 from pomban.screens.projects import ProjectsScreen
+from pomban.screens.sprint_create import SprintCreateModal
 
 
 async def wait_for(pilot, screen_cls, *, tries: int = 40):
@@ -40,7 +42,10 @@ async def test_s_creates_and_activates_sprint_for_focused_project():
             await wait_for(pilot, ProjectsScreen)
             # First row is the only real project — cursor lands on row 0 by default.
             await pilot.press("s")
-            await pilot.pause()
+            # `s` now opens the SprintCreateModal; submit it with defaults.
+            await wait_for(pilot, SprintCreateModal)
+            await pilot.press("ctrl+s")
+            await wait_for(pilot, ProjectsScreen)
             sprints = db.list_sprints(project_id=project.id)
             assert len(sprints) == 1
             assert sprints[0].status == "active"
